@@ -1,0 +1,8 @@
+database:
+  database: pure
+  host: localhost
+  port: 27017
+player-count: 300
+
+anti-spambot:
+  account-limit: 3

@@ -1,0 +1,5 @@
+name: Pure
+main: com.breakmc.pure.Pure
+version: 1.0
+depend: [ProtocolLib, PermissionsEx]
+author: Young
