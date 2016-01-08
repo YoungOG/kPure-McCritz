@@ -6,9 +6,10 @@ import java.util.UUID;
 
 public class Note extends Punishment {
 
-    public Note(UUID punisherUUID, String reason, String dateIssued) {
+    public Note(UUID punishedUUID, UUID punisherUUID, String reason, String dateIssued) {
         super();
 
+        this.punishedUUID = punishedUUID;
         this.punisherUUID = punisherUUID;
         this.reason = reason;
         this.dateIssued = dateIssued;

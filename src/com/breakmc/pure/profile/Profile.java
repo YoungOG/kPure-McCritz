@@ -1,10 +1,9 @@
 package com.breakmc.pure.profile;
 
 import com.breakmc.pure.Pure;
-import com.breakmc.pure.punishment.PunishmentManager;
+import com.breakmc.pure.punishment.punishments.*;
 import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
-import com.breakmc.pure.punishment.punishments.*;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.database.DatabaseManager;
 import com.mongodb.BasicDBList;
@@ -15,8 +14,12 @@ import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Getter
@@ -95,7 +98,7 @@ public class Profile {
             if (dbol4 != null) {
                 for (Object obj : dbol4) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentBans.add(new PermanentBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentBans.add(new PermanentBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -104,7 +107,7 @@ public class Profile {
             if (dbol5 != null) {
                 for (Object obj : dbol5) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryBans.add(new TemporaryBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryBans.add(new TemporaryBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -113,7 +116,7 @@ public class Profile {
             if (dbol6 != null) {
                 for (Object obj : dbol6) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentMutes.add(new PermanentMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentMutes.add(new PermanentMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -122,7 +125,7 @@ public class Profile {
             if (dbol7 != null) {
                 for (Object obj : dbol7) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryMutes.add(new TemporaryMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryMutes.add(new TemporaryMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -131,7 +134,7 @@ public class Profile {
             if (dbol8 != null) {
                 for (Object obj : dbol8) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    warns.add(new Warn(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    warns.add(new Warn(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -140,7 +143,7 @@ public class Profile {
             if (dbol9 != null) {
                 for (Object obj : dbol9) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    notes.add(new Note(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    notes.add(new Note(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -153,6 +156,9 @@ public class Profile {
             this.setAltList(alts);
             this.setNameList(names);
             this.setIpList(ips);
+
+            checkForValidAlts();
+            checkForBannedAlts();
         }
     }
 
@@ -341,5 +347,85 @@ public class Profile {
                 MessageManager.sendMessage(sender, "  &7- &a" + n.getReason() + " &7(&a" + n.getPunisherName() + "&7)");
             }
         }
+    }
+
+    public void checkForValidAlts() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Pure.getInstance().getProfileManager().getLoadedProfiles().stream().filter(profs -> profs.getIpList().contains(getCurrentIP())).forEach(profs -> {
+                    if (profs.getUniqueID() != getUniqueID()) {
+                        if (!profs.getAltList().contains(getUniqueID())) {
+                            profs.getAltList().add(getUniqueID());
+                        }
+
+                        if (!getAltList().contains(profs.getUniqueID())) {
+                            getAltList().add(profs.getUniqueID());
+                        }
+                    }
+                });
+
+                DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find();
+
+                while (dbc.hasNext()) {
+                    BasicDBObject dbo = (BasicDBObject) dbc.next();
+
+                    Profile tprof = Pure.getInstance().getProfileManager().getProfile(UUID.fromString(dbo.getString("uuid")));
+
+                    if (tprof.getIpList().contains(getCurrentIP())) {
+                        if (!getAltList().contains(tprof.getUniqueID())) {
+                            if (tprof.getUniqueID() != getUniqueID()) {
+                                if (!tprof.getAltList().contains(getUniqueID())) {
+                                    tprof.getAltList().add(getUniqueID());
+
+                                    Pure.getInstance().getProfileManager().saveProfile(tprof);
+                                }
+
+                                if (!getAltList().contains(tprof.getUniqueID())) {
+                                    getAltList().add(tprof.getUniqueID());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskAsynchronously(Pure.getInstance());
+    }
+
+    public void checkForBannedAlts() {
+        List<String> associatedProfiles = new ArrayList<>();
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find();
+
+                while (dbc.hasNext()) {
+                    BasicDBObject dbo = (BasicDBObject) dbc.next();
+
+                    Profile tprof = Pure.getInstance().getProfileManager().getProfile(UUID.fromString(dbo.getString("uuid")));
+
+                    boolean alert = false;
+
+                    if (tprof.isBanned()) {
+                        for (String taddress : tprof.getIpList()) {
+                            if (getIpList().contains(taddress)) {
+                                alert = true;
+                            }
+                        }
+
+                        for (String address : getIpList()) {
+                            if (tprof.getIpList().contains(address)) {
+                                alert = true;
+                                associatedProfiles.add(tprof.getCurrentName());
+                            }
+                        }
+                    }
+
+                    if (alert)
+                        MessageManager.broadcast("pure.alert", "&cAlert! &a" + getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
+                }
+            }
+        }.runTaskAsynchronously(Pure.getInstance());
     }
 }

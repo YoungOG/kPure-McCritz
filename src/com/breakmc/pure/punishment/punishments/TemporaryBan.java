@@ -12,9 +12,10 @@ public class TemporaryBan extends Punishment {
 
     protected long length;
 
-    public TemporaryBan(UUID punisherUUID, long length, String reason, String dateIssued) {
+    public TemporaryBan(UUID punishedUUID, UUID punisherUUID, long length, String reason, String dateIssued) {
         super();
 
+        this.punishedUUID = punishedUUID;
         this.punisherUUID = punisherUUID;
         this.length = length;
         this.reason = reason;

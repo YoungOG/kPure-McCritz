@@ -79,7 +79,7 @@ public class ProfileManager {
             if (dbol4 != null) {
                 for (Object obj : dbol4) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentBans.add(new PermanentBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentBans.add(new PermanentBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -88,7 +88,7 @@ public class ProfileManager {
             if (dbol5 != null) {
                 for (Object obj : dbol5) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryBans.add(new TemporaryBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryBans.add(new TemporaryBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -97,7 +97,7 @@ public class ProfileManager {
             if (dbol6 != null) {
                 for (Object obj : dbol6) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentMutes.add(new PermanentMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentMutes.add(new PermanentMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -106,7 +106,7 @@ public class ProfileManager {
             if (dbol7 != null) {
                 for (Object obj : dbol7) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryMutes.add(new TemporaryMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryMutes.add(new TemporaryMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -115,7 +115,7 @@ public class ProfileManager {
             if (dbol8 != null) {
                 for (Object obj : dbol8) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    warns.add(new Warn(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    warns.add(new Warn(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -124,7 +124,7 @@ public class ProfileManager {
             if (dbol9 != null) {
                 for (Object obj : dbol9) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    notes.add(new Note(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    notes.add(new Note(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -170,6 +170,7 @@ public class ProfileManager {
             BasicDBList dbl4 = new BasicDBList();
             for (PermanentBan b : prof.getPermanentBans()) {
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", b.getPunishedUUID().toString());
                 if (b.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", b.getPunisherUUID().toString());
                 }
@@ -187,6 +188,7 @@ public class ProfileManager {
                 }
 
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", b.getPunishedUUID().toString());
                 if (b.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", b.getPunisherUUID().toString());
                 }
@@ -200,6 +202,7 @@ public class ProfileManager {
             BasicDBList dbl6 = new BasicDBList();
             for (PermanentMute m : prof.getPermanentMutes()) {
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", m.getPunishedUUID().toString());
                 if (m.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", m.getPunisherUUID().toString());
                 }
@@ -217,6 +220,7 @@ public class ProfileManager {
                 }
 
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", m.getPunishedUUID().toString());
                 if (m.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", m.getPunisherUUID().toString());
                 }
@@ -230,6 +234,7 @@ public class ProfileManager {
             BasicDBList dbl8 = new BasicDBList();
             for (Warn w : prof.getWarns()) {
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", w.getPunishedUUID().toString());
                 if (w.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", w.getPunisherUUID().toString());
                 }
@@ -242,6 +247,7 @@ public class ProfileManager {
             BasicDBList dbl9 = new BasicDBList();
             for (Note n : prof.getNotes()) {
                 BasicDBObject bdo = new BasicDBObject();
+                bdo.append("punishedUUID", n.getPunishedUUID().toString());
                 if (n.getPunisherUUID() != null) {
                     bdo.append("punisherUUID", n.getPunisherUUID().toString());
                 }
@@ -299,7 +305,7 @@ public class ProfileManager {
             if (dbol4 != null) {
                 for (Object obj : dbol4) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentBans.add(new PermanentBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentBans.add(new PermanentBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -308,7 +314,7 @@ public class ProfileManager {
             if (dbol5 != null) {
                 for (Object obj : dbol5) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryBans.add(new TemporaryBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryBans.add(new TemporaryBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -317,7 +323,7 @@ public class ProfileManager {
             if (dbol6 != null) {
                 for (Object obj : dbol6) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentMutes.add(new PermanentMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentMutes.add(new PermanentMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -326,7 +332,7 @@ public class ProfileManager {
             if (dbol7 != null) {
                 for (Object obj : dbol7) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryMutes.add(new TemporaryMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryMutes.add(new TemporaryMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -335,7 +341,7 @@ public class ProfileManager {
             if (dbol8 != null) {
                 for (Object obj : dbol8) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    warns.add(new Warn(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    warns.add(new Warn(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -344,7 +350,7 @@ public class ProfileManager {
             if (dbol9 != null) {
                 for (Object obj : dbol9) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    notes.add(new Note(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    notes.add(new Note(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -387,6 +393,7 @@ public class ProfileManager {
         BasicDBList dbl4 = new BasicDBList();
         for (PermanentBan b : prof.getPermanentBans()) {
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", b.getPunishedUUID());
             if (b.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", b.getPunisherUUID().toString());
             }
@@ -404,6 +411,7 @@ public class ProfileManager {
             }
 
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", b.getPunishedUUID());
             if (b.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", b.getPunisherUUID().toString());
             }
@@ -417,6 +425,7 @@ public class ProfileManager {
         BasicDBList dbl6 = new BasicDBList();
         for (PermanentMute m : prof.getPermanentMutes()) {
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", m.getPunishedUUID());
             if (m.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", m.getPunisherUUID().toString());
             }
@@ -434,6 +443,7 @@ public class ProfileManager {
             }
 
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", m.getPunishedUUID());
             if (m.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", m.getPunisherUUID().toString());
             }
@@ -447,6 +457,7 @@ public class ProfileManager {
         BasicDBList dbl8 = new BasicDBList();
         for (Warn w : prof.getWarns()) {
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", w.getPunishedUUID());
             if (w.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", w.getPunisherUUID().toString());
             }
@@ -458,6 +469,7 @@ public class ProfileManager {
         BasicDBList dbl9 = new BasicDBList();
         for (Note n : prof.getNotes()) {
             BasicDBObject bdo = new BasicDBObject();
+            bdo.append("punishedUUID", n.getPunishedUUID());
             if (n.getPunisherUUID() != null) {
                 bdo.append("punisherUUID", n.getPunisherUUID().toString());
             }

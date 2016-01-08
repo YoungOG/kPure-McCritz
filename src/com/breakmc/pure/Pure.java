@@ -11,7 +11,10 @@ import com.breakmc.pure.utils.command.Register;
 import com.breakmc.pure.utils.database.DatabaseManager;
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.*;
+import com.comphenix.protocol.events.ListenerPriority;
+import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.reflect.FieldAccessException;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -54,9 +57,6 @@ public class Pure extends JavaPlugin {
                 public void run() {
                     Profile prof = profileManager.getProfile(p.getUniqueId());
 
-                    punishmentManager.checkForValidAlts(prof.getUniqueID());
-                    punishmentManager.checkForBannedAlts(prof.getUniqueID());
-
                     prof.setOnline(p.isOnline());
                     prof.setLogins(prof.getLogins() + 1);
                     prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
@@ -75,6 +75,8 @@ public class Pure extends JavaPlugin {
 
         profileManager.saveProfiles();
         punishmentManager.saveIPBans();
+
+        DatabaseManager.getInstance().getClient().close();
 
         getConfig().set("player-count", playerCount);
         saveConfig();
@@ -112,6 +114,7 @@ public class Pure extends JavaPlugin {
             register.registerCommand("cleardb", new Command_cleardb());
             register.registerCommand("kickall", new Command_kickall());
             register.registerCommand("hub", new Command_hub());
+            register.registerCommand("banlookup", new Command_banlookup());
         } catch (Exception e) {
             e.printStackTrace();
         }

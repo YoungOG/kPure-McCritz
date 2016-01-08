@@ -6,7 +6,7 @@ import net.minecraft.util.gnu.trove.map.hash.TObjectIntHashMap;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -18,15 +18,19 @@ public class Listener_antispambot implements Listener {
 
     @EventHandler
     public void preLogin(PlayerPreLoginEvent e) {
-        if (addresses.get(e.getAddress()) >= 3) {
-            e.disallow(PlayerPreLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You already have 3 accounts using this IP Address.");
-            e.setKickMessage(ChatColor.RED + "You already have 3 account using this IP Address.");
+        if (e.getResult() == PlayerPreLoginEvent.Result.ALLOWED) {
+            if (addresses.get(e.getAddress()) >= 3) {
+                e.disallow(PlayerPreLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You already have 3 accounts using this IP Address.");
+                e.setKickMessage(ChatColor.RED + "You already have 3 accounts using this IP Address.");
+            }
         }
     }
 
     @EventHandler
-    public void login(PlayerLoginEvent e) {
-        addresses.adjustOrPutValue(e.getAddress(), 1, 1);
+    public void login(PlayerJoinEvent e) {
+        if (e.getPlayer() != null ) {
+            addresses.adjustOrPutValue(e.getPlayer().getAddress().getAddress(), 1, 1);
+        }
     }
 
     @EventHandler

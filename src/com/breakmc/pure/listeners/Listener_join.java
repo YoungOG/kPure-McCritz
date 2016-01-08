@@ -62,9 +62,6 @@ public class Listener_join implements Listener {
                 public void run() {
                     Profile prof = pm.getProfile(p.getUniqueId());
 
-                    pum.checkForValidAlts(prof.getUniqueID());
-                    pum.checkForBannedAlts(prof.getUniqueID());
-
                     prof.setOnline(p.isOnline());
                     prof.setLogins(prof.getLogins() + 1);
                     prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
@@ -86,7 +83,7 @@ public class Listener_join implements Listener {
             return;
         }
 
-        if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
+        if (e.getPlayer() != null && pm.getProfile(e.getPlayer().getUniqueId()) != null) {
             Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
 
             if (prof.isBanned()) {
@@ -106,14 +103,14 @@ public class Listener_join implements Listener {
             }
         }
 
-        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !p.hasPermission("pure.joinfullserver")) {
+        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !e.getPlayer().hasPermission("pure.joinfullserver")) {
             e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.translateAlternateColorCodes('&', "&b&nThe server is &cfull&b!\n\n&aDonate at www.BreakMC.com/store to join now!"));
             return;
         }
 
         new BukkitRunnable() {
             public void run() {
-                if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
+                if (e.getPlayer() != null && pm.getProfile(e.getPlayer().getUniqueId()) != null) {
                     Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
                     prof.setCurrentName(p.getName());
                     prof.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));

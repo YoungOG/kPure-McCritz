@@ -10,6 +10,7 @@ import java.util.UUID;
 @Getter
 public abstract class Punishment {
 
+    protected UUID punishedUUID;
     protected UUID punisherUUID;
     protected String reason;
     protected String dateIssued;
