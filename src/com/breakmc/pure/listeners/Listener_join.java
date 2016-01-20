@@ -48,27 +48,20 @@ public class Listener_join implements Listener {
             }
         }
 
-        if (!pm.hasProfile(p.getUniqueId()) || !pm.hasLoadedProfile(p.getUniqueId())) {
+        if (!pm.hasProfile(p.getUniqueId()) && !pm.hasLoadedProfile(p.getUniqueId())) {
+            System.out.println("Creating " + p.getName() + "'s profile!");
             pm.createProfile(p, p.getAddress().getAddress().getHostAddress().replace("/", ""));
-        } else if (pm.hasLoadedProfile(p.getUniqueId())) {
+        } else if (!pm.hasLoadedProfile(p.getUniqueId()) && pm.hasProfile(p.getUniqueId())) {
+            System.out.println("Loading " + p.getName() + "'s profile!");
+            pm.loadProfile(p.getUniqueId(), true);
+
             Profile prof = pm.getProfile(p.getUniqueId());
+            prof.setOnline(p.isOnline());
+            prof.setLogins(prof.getLogins() + 1);
+            prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
+            prof.saveProfileData();
 
-            pm.getLoadedProfiles().remove(prof);
-            pm.loadProfile(p.getUniqueId());
-            System.out.println("Reloaded " + p.getName() + "'s profile!");
-
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    Profile prof = pm.getProfile(p.getUniqueId());
-
-                    prof.setOnline(p.isOnline());
-                    prof.setLogins(prof.getLogins() + 1);
-                    prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
-
-                    pm.saveProfile(prof);
-                }
-            }.runTaskLater(Pure.getInstance(), 5L);
+            System.out.println("Loaded " + p.getName() + "'s profile!");
         } else {
             System.out.println("Could not find/load " + p.getName() + "'s profile!");
         }
@@ -83,7 +76,7 @@ public class Listener_join implements Listener {
             return;
         }
 
-        if (e.getPlayer() != null && pm.getProfile(e.getPlayer().getUniqueId()) != null) {
+        if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
             Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
 
             if (prof.isBanned()) {
@@ -103,19 +96,18 @@ public class Listener_join implements Listener {
             }
         }
 
-        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !e.getPlayer().hasPermission("pure.joinfullserver")) {
+        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !p.hasPermission("pure.joinfullserver")) {
             e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.translateAlternateColorCodes('&', "&b&nThe server is &cfull&b!\n\n&aDonate at www.BreakMC.com/store to join now!"));
             return;
         }
 
         new BukkitRunnable() {
             public void run() {
-                if (e.getPlayer() != null && pm.getProfile(e.getPlayer().getUniqueId()) != null) {
+                if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
                     Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
                     prof.setCurrentName(p.getName());
                     prof.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
-
-                    pm.saveProfile(prof);
+                    prof.saveProfileData();
                 }
             }
         }.runTaskAsynchronously(Pure.getInstance());
@@ -129,9 +121,10 @@ public class Listener_join implements Listener {
 
         if (prof != null) {
             prof.setOnline(false);
-
-            pm.saveProfile(prof);
+            prof.saveProfileData();
         }
+
+        pm.getLoadedProfiles().remove(prof);
     }
 
     @EventHandler
@@ -147,6 +140,7 @@ public class Listener_join implements Listener {
         Player p = e.getPlayer();
 
         Profile prof = pm.getProfile(p.getUniqueId());
+        prof.saveProfileData();
 
         if (prof.isMuted()) {
             e.setCancelled(true);

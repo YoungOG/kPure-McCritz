@@ -8,8 +8,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerChatTabCompleteEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class Listener_chat implements Listener {
 
@@ -30,16 +28,6 @@ public class Listener_chat implements Listener {
             if (!p.hasPermission("pure.mutechat")) {
                 e.setCancelled(true);
                 MessageManager.sendMessage(p, "&cChat is currently muted, you may not speak.");
-            }
-        }
-    }
-
-    @EventHandler
-    public void onTab(PlayerChatTabCompleteEvent e) {
-        System.out.println(e.getChatMessage());
-        if (e.getChatMessage().startsWith("/pex") || e.getChatMessage().startsWith("permissionsex")) {
-            if (!e.getPlayer().hasPermission("pure.tabcomplete")) {
-                e.getTabCompletions().clear();
             }
         }
     }

@@ -12,10 +12,9 @@ public class TemporaryMute extends Punishment {
 
     protected long length;
 
-    public TemporaryMute(UUID punishedUUID, UUID punisherUUID, long length, String reason, String dateIssued) {
+    public TemporaryMute(UUID punisherUUID, long length, String reason, String dateIssued) {
         super();
 
-        this.punishedUUID = punishedUUID;
         this.punisherUUID = punisherUUID;
         this.length = length;
         this.reason = reason;

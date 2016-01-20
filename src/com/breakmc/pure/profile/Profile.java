@@ -8,18 +8,19 @@ import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.database.DatabaseManager;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 @Getter
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 public class Profile {
 
+    private DBCollection pCollection = DatabaseManager.getInstance().getCollection("profiles");
     private UUID uniqueID;
     private String currentName;
     private String currentIP;
@@ -48,24 +50,25 @@ public class Profile {
 
     public Profile(UUID uniqueID) {
         this.uniqueID = uniqueID;
-
-        altList = new HashSet<>();
-        nameList = new HashSet<>();
-        ipList = new HashSet<>();
-        permanentBans = new ArrayList<>();
-        temporaryBans = new ArrayList<>();
-        permanentMutes = new ArrayList<>();
-        temporaryMutes = new ArrayList<>();
-        warns = new ArrayList<>();
-        notes = new ArrayList<>();
     }
 
-    public void loadProfileData() {
-        DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find(new BasicDBObject("uuid", uniqueID));
+    public Profile(String currentName) {
+        this.currentName = currentName;
+    }
+
+    public boolean loadProfileData(boolean username) {
+        DBCursor dbc;
+
+        if (username) {
+            dbc = pCollection.find(new BasicDBObject("currentName", currentName));
+        } else {
+            dbc = pCollection.find(new BasicDBObject("uniqueID", uniqueID.toString()));
+        }
 
         if (dbc.hasNext()) {
             BasicDBObject dbo = (BasicDBObject) dbc.next();
 
+            this.uniqueID = UUID.fromString(dbo.getString("uniqueID"));
             this.currentName = dbo.getString("currentName");
             this.currentIP = dbo.getString("currentIP");
             this.dateCreated = dbo.getString("dateCreated");
@@ -76,21 +79,21 @@ public class Profile {
             this.pin = dbo.getString("pin");
 
             BasicDBList dbol1 = (BasicDBList) dbo.get("altList");
-            HashSet<UUID> alts = new HashSet<>();
+            HashSet<UUID> altList = new HashSet<>();
             if (dbol1 != null) {
-                alts.addAll(dbol1.stream().map(obj -> UUID.fromString((String) obj)).collect(Collectors.toList()));
+                altList.addAll(dbol1.stream().map(obj -> UUID.fromString((String) obj)).collect(Collectors.toList()));
             }
 
             BasicDBList dbol2 = (BasicDBList) dbo.get("nameList");
-            HashSet<String> names = new HashSet<>();
+            HashSet<String> nameList = new HashSet<>();
             if (dbol2 != null) {
-                names.addAll(dbol2.stream().map(obj -> (String) obj).collect(Collectors.toList()));
+                nameList.addAll(dbol2.stream().map(obj -> (String) obj).collect(Collectors.toList()));
             }
 
             BasicDBList dbol3 = (BasicDBList) dbo.get("ipList");
-            HashSet<String> ips = new HashSet<>();
+            HashSet<String> ipList = new HashSet<>();
             if (dbol3 != null) {
-                ips.addAll(dbol3.stream().map(obj -> (String) obj).collect(Collectors.toList()));
+                ipList.addAll(dbol3.stream().map(obj -> (String) obj).collect(Collectors.toList()));
             }
 
             BasicDBList dbol4 = (BasicDBList) dbo.get("permanent-bans");
@@ -98,7 +101,7 @@ public class Profile {
             if (dbol4 != null) {
                 for (Object obj : dbol4) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentBans.add(new PermanentBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentBans.add(new PermanentBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -107,7 +110,7 @@ public class Profile {
             if (dbol5 != null) {
                 for (Object obj : dbol5) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryBans.add(new TemporaryBan(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryBans.add(new TemporaryBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -116,7 +119,7 @@ public class Profile {
             if (dbol6 != null) {
                 for (Object obj : dbol6) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentMutes.add(new PermanentMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
+                    permanentMutes.add(new PermanentMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
                 }
             }
 
@@ -125,7 +128,7 @@ public class Profile {
             if (dbol7 != null) {
                 for (Object obj : dbol7) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryMutes.add(new TemporaryMute(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    temporaryMutes.add(new TemporaryMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -134,7 +137,7 @@ public class Profile {
             if (dbol8 != null) {
                 for (Object obj : dbol8) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    warns.add(new Warn(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    warns.add(new Warn(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -143,7 +146,7 @@ public class Profile {
             if (dbol9 != null) {
                 for (Object obj : dbol9) {
                     BasicDBObject bdo = (BasicDBObject) obj;
-                    notes.add(new Note(UUID.fromString(bdo.getString("punishedUUID")), ((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
+                    notes.add(new Note(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
                 }
             }
 
@@ -152,13 +155,127 @@ public class Profile {
             this.permanentMutes = permanentMutes;
             this.temporaryMutes = temporaryMutes;
             this.warns = warns;
-            this.setNotes(notes);
-            this.setAltList(alts);
-            this.setNameList(names);
-            this.setIpList(ips);
+            this.notes = notes;
+            this.altList = altList;
+            this.nameList = nameList;
+            this.ipList = ipList;
 
-            checkForValidAlts();
-            checkForBannedAlts();
+            return true;
+        } else {
+            Pure.getInstance().getLogger().log(Level.WARNING, "Could not load profile data for " + uniqueID);
+            return false;
+        }
+    }
+
+    public void saveProfileData() {
+        DBCursor dbc = pCollection.find(new BasicDBObject("uniqueID", uniqueID.toString()));
+
+        BasicDBObject dbo = new BasicDBObject("uniqueID", uniqueID.toString());
+        dbo.put("currentName", currentName);
+        dbo.put("currentIP", currentIP);
+        dbo.put("dateCreated", dateCreated);
+        dbo.put("isOnline", isOnline);
+        dbo.put("playtime", playtime);
+        dbo.put("logins", logins);
+        dbo.put("pin", pin);
+
+        BasicDBList dbl1 = altList.stream().map(UUID::toString).collect(Collectors.toCollection(BasicDBList::new));
+        dbo.put("altList", dbl1);
+
+        BasicDBList dbl2 = nameList.stream().collect(Collectors.toCollection(BasicDBList::new));
+        dbo.put("nameList", dbl2);
+
+        BasicDBList dbl3 = ipList.stream().collect(Collectors.toCollection(BasicDBList::new));
+        dbo.put("ipList", dbl3);
+
+        BasicDBList dbl4 = new BasicDBList();
+        for (PermanentBan b : permanentBans) {
+            BasicDBObject bdo = new BasicDBObject();
+            if (b.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+            bdo.append("reason", b.getReason());
+            bdo.append("dateCreated", b.getDateIssued());
+            bdo.append("isActive", b.isActive());
+            dbl4.add(bdo);
+        }
+        dbo.put("permanent-bans", dbl4);
+
+        BasicDBList dbl5 = new BasicDBList();
+        for (TemporaryBan b : temporaryBans) {
+            if (System.currentTimeMillis() >= b.getLength()) {
+                b.setActive(false);
+            }
+
+            BasicDBObject bdo = new BasicDBObject();
+            if (b.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+            bdo.append("length", b.getLength());
+            bdo.append("reason", b.getReason());
+            bdo.append("dateCreated", b.getDateIssued());
+            dbl5.add(bdo);
+        }
+        dbo.put("temporary-bans", dbl5);
+
+        BasicDBList dbl6 = new BasicDBList();
+        for (PermanentMute m : permanentMutes) {
+            BasicDBObject bdo = new BasicDBObject();
+            if (m.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", m.getPunisherUUID().toString());
+            }
+            bdo.append("reason", m.getReason());
+            bdo.append("dateCreated", m.getDateIssued());
+            bdo.append("isActive", m.isActive());
+            dbl6.add(bdo);
+        }
+        dbo.put("permanent-mutes", dbl6);
+
+        BasicDBList dbl7 = new BasicDBList();
+        for (TemporaryMute m : temporaryMutes) {
+            if (System.currentTimeMillis() >= m.getLength()) {
+                m.setActive(false);
+            }
+
+            BasicDBObject bdo = new BasicDBObject();
+            if (m.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", m.getPunisherUUID().toString());
+            }
+            bdo.append("length", m.getLength());
+            bdo.append("reason", m.getReason());
+            bdo.append("dateCreated", m.getDateIssued());
+            dbl7.add(bdo);
+        }
+        dbo.put("temporary-mutes", dbl7);
+
+        BasicDBList dbl8 = new BasicDBList();
+        for (Warn w : warns) {
+            BasicDBObject bdo = new BasicDBObject();
+            if (w.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", w.getPunisherUUID().toString());
+            }
+            bdo.append("reason", w.getReason());
+            bdo.append("dateCreated", w.getDateIssued());
+            dbl8.add(bdo);
+        }
+
+        dbo.put("warns", dbl8);
+        BasicDBList dbl9 = new BasicDBList();
+        for (Note n : notes) {
+            BasicDBObject bdo = new BasicDBObject();
+            if (n.getPunisherUUID() != null) {
+                bdo.append("punisherUUID", n.getPunisherUUID().toString());
+            }
+            bdo.append("reason", n.getReason());
+            bdo.append("dateCreated", n.getDateIssued());
+            dbl9.add(bdo);
+        }
+        dbo.put("notes", dbl9);
+
+        if (dbc.hasNext()) {
+            pCollection.update(dbc.next(), dbo);
+        } else {
+            pCollection.insert(dbo);
         }
     }
 
@@ -273,10 +390,7 @@ public class Profile {
         MessageManager.sendMessage(sender, "&7Online: " + (isOnline ? "&aTrue" : "&cFalse"));
         MessageManager.sendMessage(sender, "&7Playtime: &a" + DateUtil.readableTime(getPlaytime() * 1000));
         MessageManager.sendMessage(sender, "&7Rank: &a" + getGroup());
-
-        if (hasElevatedPermission)
-            MessageManager.sendMessage(sender, "&7Past IPs(&a" + getIpList().size() + "&7): &a" + getIpList().toString().replace("[", "").replace("]", ""));
-
+        MessageManager.sendMessage(sender, "&7Past IPs(&a" + getIpList().size() + "&7): &a" + getIpList().toString().replace("[", "").replace("]", ""));
         MessageManager.sendMessage(sender, "&7Past Names&7(&a" + getNameList().size() + "&7): &a" + getNameList().toString().replace("[", "").replace("]", ""));
 
         if (getAltList().size() > 0) {
@@ -347,85 +461,5 @@ public class Profile {
                 MessageManager.sendMessage(sender, "  &7- &a" + n.getReason() + " &7(&a" + n.getPunisherName() + "&7)");
             }
         }
-    }
-
-    public void checkForValidAlts() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Pure.getInstance().getProfileManager().getLoadedProfiles().stream().filter(profs -> profs.getIpList().contains(getCurrentIP())).forEach(profs -> {
-                    if (profs.getUniqueID() != getUniqueID()) {
-                        if (!profs.getAltList().contains(getUniqueID())) {
-                            profs.getAltList().add(getUniqueID());
-                        }
-
-                        if (!getAltList().contains(profs.getUniqueID())) {
-                            getAltList().add(profs.getUniqueID());
-                        }
-                    }
-                });
-
-                DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find();
-
-                while (dbc.hasNext()) {
-                    BasicDBObject dbo = (BasicDBObject) dbc.next();
-
-                    Profile tprof = Pure.getInstance().getProfileManager().getProfile(UUID.fromString(dbo.getString("uuid")));
-
-                    if (tprof.getIpList().contains(getCurrentIP())) {
-                        if (!getAltList().contains(tprof.getUniqueID())) {
-                            if (tprof.getUniqueID() != getUniqueID()) {
-                                if (!tprof.getAltList().contains(getUniqueID())) {
-                                    tprof.getAltList().add(getUniqueID());
-
-                                    Pure.getInstance().getProfileManager().saveProfile(tprof);
-                                }
-
-                                if (!getAltList().contains(tprof.getUniqueID())) {
-                                    getAltList().add(tprof.getUniqueID());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.runTaskAsynchronously(Pure.getInstance());
-    }
-
-    public void checkForBannedAlts() {
-        List<String> associatedProfiles = new ArrayList<>();
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find();
-
-                while (dbc.hasNext()) {
-                    BasicDBObject dbo = (BasicDBObject) dbc.next();
-
-                    Profile tprof = Pure.getInstance().getProfileManager().getProfile(UUID.fromString(dbo.getString("uuid")));
-
-                    boolean alert = false;
-
-                    if (tprof.isBanned()) {
-                        for (String taddress : tprof.getIpList()) {
-                            if (getIpList().contains(taddress)) {
-                                alert = true;
-                            }
-                        }
-
-                        for (String address : getIpList()) {
-                            if (tprof.getIpList().contains(address)) {
-                                alert = true;
-                                associatedProfiles.add(tprof.getCurrentName());
-                            }
-                        }
-                    }
-
-                    if (alert)
-                        MessageManager.broadcast("pure.alert", "&cAlert! &a" + getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
-                }
-            }
-        }.runTaskAsynchronously(Pure.getInstance());
     }
 }

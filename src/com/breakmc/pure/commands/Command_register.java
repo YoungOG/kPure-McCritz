@@ -1,6 +1,5 @@
 package com.breakmc.pure.commands;
 
-import com.breakmc.pure.Pure;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.command.BaseCommand;
 import com.breakmc.pure.utils.command.CommandUsageBy;
@@ -11,7 +10,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Calendar;
@@ -42,34 +40,29 @@ public class Command_register extends BaseCommand {
                 return;
             }
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!hasRegistered(p)) {
-                        Date date = new Date();
-                        Calendar cal = Calendar.getInstance();
-                        cal.setTime(date);
+            if (!hasRegistered(p)) {
+                Date date = new Date();
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(date);
 
-                        BasicDBObject dbo = new BasicDBObject("username", p.getName());
-                        dbo.put("uuid", p.getUniqueId());
-                        dbo.put("password", BCrypt.hashpw(args[0], BCrypt.gensalt()));
-                        dbo.put("date", "" + cal.get(Calendar.MONTH) + "/" + cal.get(Calendar.DAY_OF_MONTH) + "/" + cal.get(Calendar.YEAR));
-                        dbo.put("posts", new BasicDBList());
-                        dbo.put("tickets", new BasicDBList());
-                        dbo.put("apps", new BasicDBList());
+                BasicDBObject dbo = new BasicDBObject("username", p.getName());
+                dbo.put("uuid", p.getUniqueId().toString());
+                dbo.put("password", BCrypt.hashpw(args[0], BCrypt.gensalt()));
+                dbo.put("date", "" + cal.get(Calendar.MONTH) + "/" + cal.get(Calendar.DAY_OF_MONTH) + "/" + cal.get(Calendar.YEAR));
+                dbo.put("posts", new BasicDBList());
+                dbo.put("tickets", new BasicDBList());
+                dbo.put("apps", new BasicDBList());
 
-                        if (p.isOp()) {
-                            dbo.put("admin", true);
-                        }
+                if (p.isOp()) {
+                    dbo.put("admin", true);
 
-                        collection.insert(dbo);
-                        MessageManager.sendMessage(p, "&aSuccessfully registered!");
-                    } else {
-                        MessageManager.sendMessage(p, "&cThis account is already registered.");
-
-                    }
                 }
-            }.runTaskAsynchronously(Pure.getInstance());
+
+                collection.insert(dbo);
+                MessageManager.sendMessage(p, "&aSuccessfully registered! ");
+            } else {
+                MessageManager.sendMessage(p, "&cThis account is already registered.");
+            }
         }
     }
 

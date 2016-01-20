@@ -38,7 +38,7 @@ public class Command_banlookup extends BaseCommand {
 
             Profile prof = pm.getProfile(args[0]);
 
-            pum.lookupPunishments(sender, prof.getUniqueID());
+//            pum.lookupPunishments(sender, prof.getUniqueID());
         }
 
         if (args.length == 2) {
