@@ -380,7 +380,7 @@ public class Profile {
     }
 
     public boolean hasPin() {
-        return !pin.equalsIgnoreCase("") || !pin.isEmpty() || !(pin.length() < 4);
+        return pin != null && !pin.equalsIgnoreCase("");
     }
 
     public void lookup(CommandSender sender) {

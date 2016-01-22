@@ -75,34 +75,36 @@ public class Pure extends JavaPlugin {
         Register register = new Register();
 
         try {
-            register.registerCommand("lookup", new Command_lookup());
-            register.registerCommand("ban", new Command_ban());
-            register.registerCommand("tempban", new Command_tempban());
-            register.registerCommand("banip", new Command_banip());
-            register.registerCommand("unban", new Command_unban());
-            register.registerCommand("mute", new Command_mute());
-            register.registerCommand("permmute", new Command_permmute());
-            register.registerCommand("unmute", new Command_unmute());
-            register.registerCommand("warn", new Command_warn());
-            register.registerCommand("note", new Command_note());
-            register.registerCommand("report", new Command_report());
-            register.registerCommand("helpop", new Command_helpop());
-            register.registerCommand("freeze", new Command_freeze());
-            register.registerCommand("clearchat", new Command_clearchat());
-            register.registerCommand("invsee", new Command_invsee());
-            register.registerCommand("slowchat", new Command_slowchat());
-            register.registerCommand("mutechat", new Command_mutechat());
-            register.registerCommand("staffchat", new Command_staffchat());
-            register.registerCommand("vanish", new Command_vanish());
-            register.registerCommand("list", new Command_list());
-            register.registerCommand("freezeall", new Command_freezeall());
-            register.registerCommand("setslots", new Command_setslots());
-            register.registerCommand("setpin", new Command_setpin());
-            register.registerCommand("deletepin", new Command_deletepin());
-            register.registerCommand("register", new Command_register());
-            register.registerCommand("cleardb", new Command_cleardb());
-            register.registerCommand("kickall", new Command_kickall());
-            register.registerCommand("hub", new Command_hub());
+            register.registerCommand("lookup", new CommandLookup());
+            register.registerCommand("ban", new CommandBan());
+            register.registerCommand("tempban", new CommandTempBan());
+            register.registerCommand("banip", new CommandBanIP());
+            register.registerCommand("unban", new CommandUnban());
+            register.registerCommand("mute", new CommandMute());
+            register.registerCommand("permmute", new CommandPermMute());
+            register.registerCommand("unmute", new CommandUnMute());
+            register.registerCommand("warn", new CommandWarn());
+            register.registerCommand("note", new CommandNote());
+            register.registerCommand("report", new CommandReport());
+            register.registerCommand("helpop", new CommandHelpOP());
+            register.registerCommand("freeze", new CommandFreeze());
+            register.registerCommand("clearchat", new CommandClearChat());
+            register.registerCommand("invsee", new CommandInvsee());
+            register.registerCommand("slowchat", new CommandSlowChat());
+            register.registerCommand("mutechat", new CommandMuteChat());
+            register.registerCommand("staffchat", new CommandStaffChat());
+            register.registerCommand("vanish", new CommandVanish());
+            register.registerCommand("list", new CommandList());
+            register.registerCommand("freezeall", new CommandFreezeAll());
+            register.registerCommand("setslots", new CommandSetSlots());
+            register.registerCommand("setpin", new CommandSetPin());
+            register.registerCommand("deletepin", new CommandDelPin());
+            register.registerCommand("register", new CommandRegister());
+            register.registerCommand("cleardb", new CommandClearDB());
+            register.registerCommand("kickall", new CommandKickAll());
+            register.registerCommand("hub", new CommandHub());
+            register.registerCommand("clearmobs", new CommandClearMobs());
+            register.registerCommand("clearitems", new CommandClearItems());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -111,12 +113,12 @@ public class Pure extends JavaPlugin {
     public void registerListeners() {
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-        getServer().getPluginManager().registerEvents(new Listener_join(), this);
-        getServer().getPluginManager().registerEvents(new Listener_freeze(), this);
-        getServer().getPluginManager().registerEvents(new Listener_chat(), this);
-        getServer().getPluginManager().registerEvents(new Listener_vanish(), this);
-        getServer().getPluginManager().registerEvents(new Listener_pin(), this);
-        getServer().getPluginManager().registerEvents(new Listener_antispambot(), this);
+        getServer().getPluginManager().registerEvents(new JoinListener(), this);
+        getServer().getPluginManager().registerEvents(new FreezeListener(), this);
+        getServer().getPluginManager().registerEvents(new ChatListener(), this);
+        getServer().getPluginManager().registerEvents(new VanishListener(), this);
+        getServer().getPluginManager().registerEvents(new PinListener(), this);
+        getServer().getPluginManager().registerEvents(new AntiSpamBotListener(), this);
     }
 
     public void registerChecks() {
