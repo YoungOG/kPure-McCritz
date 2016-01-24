@@ -57,7 +57,6 @@ public class CommandLookup extends BaseCommand {
             }
 
             Profile prof = pm.getProfile(args[0]);
-            prof.loadProfileData(false);
             prof.lookup(sender);
         } else {
             if (!sender.hasPermission("pure.lookup.admin")) {

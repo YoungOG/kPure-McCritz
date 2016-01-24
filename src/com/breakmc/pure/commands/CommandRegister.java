@@ -55,13 +55,24 @@ public class CommandRegister extends BaseCommand {
 
                 if (p.isOp()) {
                     dbo.put("admin", true);
-
                 }
 
                 collection.insert(dbo);
-                MessageManager.sendMessage(p, "&aSuccessfully registered! ");
+                MessageManager.sendMessage(p, "&aSuccessfully registered!");
             } else {
-                MessageManager.sendMessage(p, "&cThis account is already registered.");
+                DBCursor dbc = collection.find(new BasicDBObject("uuid", p.getUniqueId().toString()));
+
+                if (dbc.hasNext()) {
+                    BasicDBObject old = (BasicDBObject) dbc.next();
+
+                    old.put("password", BCrypt.hashpw(args[0], BCrypt.gensalt()));
+
+                    collection.update(old, old);
+
+                    MessageManager.sendMessage(p, "&aYour password has been changed!");
+                } else {
+                    MessageManager.sendMessage(p, "&cAn error occured while setting your password.");
+                }
             }
         }
     }

@@ -32,9 +32,11 @@ public class VanishListener implements Listener {
         HumanEntity player = e.getWhoClicked();
 
         if (Pure.getInstance().getPunishmentManager().getInventories().values().contains(inventory)) {
-            if (!player.hasPermission("pure.invsee.edit")) {
-                e.setCancelled(true);
-            }
+            e.setCancelled(true);
+        }
+
+        if (pum.isVanished((Player) player)) {
+            e.setCancelled(true);
         }
     }
 
@@ -70,6 +72,17 @@ public class VanishListener implements Listener {
 
             if (pum.isVanished(p)) {
                 e.setCancelled(true);
+            }
+        }
+
+        if (e.getDamager() != null) {
+            if (e.getDamager() instanceof Player) {
+                Player d = (Player) e.getDamager();
+
+                if (pum.isVanished(d)) {
+                    e.setCancelled(true);
+                    MessageManager.sendMessage(d, "&cYou cannot hit players while in vanish.");
+                }
             }
         }
     }

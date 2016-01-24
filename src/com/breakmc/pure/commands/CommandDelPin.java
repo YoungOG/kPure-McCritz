@@ -15,11 +15,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CommandDelPin extends BaseCommand {
+public class CommandDelpin extends BaseCommand {
 
     private ProfileManager pm = Pure.getInstance().getProfileManager();
 
-    public CommandDelPin() {
+    public CommandDelpin() {
         super("deletepin", "pure.delpin", CommandUsageBy.PlAYER, "delpin");
         setUsage("&cImproper Usage! /delpin (player)");
         setMinArgs(1);

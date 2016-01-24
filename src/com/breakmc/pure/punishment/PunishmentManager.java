@@ -72,12 +72,11 @@ public class PunishmentManager {
             }
 
             prof.getPermanentBans().add(new PermanentBan(punisher, reason, DateUtil.getProperDate(new Date()), true));
+            prof.saveProfileData();
 
-            if (prof.isOnline()) {
+            if (Bukkit.getPlayer(prof.getUniqueID()) != null) {
                 Bukkit.getPlayer(prof.getUniqueID()).kickPlayer(ChatColor.RED + "You have been permanently banned.n\nYou can appeal your ban on our website " + ChatColor.AQUA + "www.BreakMC.com");
             }
-
-            pm.reloadProfile(prof, true);
 
             MessageManager.broadcast("&a" + prof.getCurrentName() + " has been permanently banned by " + sender.getName() + ".");
         }
@@ -94,12 +93,11 @@ public class PunishmentManager {
             }
 
             prof.getTemporaryBans().add(new TemporaryBan(punisher, length, reason, DateUtil.getProperDate(new Date())));
+            prof.saveProfileData();
 
-            if (prof.isOnline()) {
+            if (Bukkit.getPlayer(prof.getUniqueID()) != null) {
                 Bukkit.getPlayer(prof.getUniqueID()).kickPlayer(ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(prof.getActiveTemporaryBan().getLength()) + " remaining.\n\nYou can not appeal a temporary ban.");
             }
-
-            pm.reloadProfile(prof, true);
 
             MessageManager.broadcast("&a" + prof.getCurrentName() + " has been temporarily banned by " + sender.getName() + ".");
         }
@@ -135,12 +133,11 @@ public class PunishmentManager {
             }
 
             prof.getPermanentMutes().add(new PermanentMute(punisher, reason, DateUtil.getProperDate(new Date()), true));
+            prof.saveProfileData();
 
             if (prof.isOnline()) {
                 MessageManager.sendMessage(punished, "&cYou have been permanently muted.");
             }
-
-            pm.reloadProfile(prof, true);
 
             MessageManager.broadcast("pure.permmute", "&a" + prof.getCurrentName() + " has been muted by " + sender.getName() + ".");
         }
@@ -157,14 +154,13 @@ public class PunishmentManager {
             }
 
             prof.getTemporaryMutes().add(new TemporaryMute(punisher, length, reason, DateUtil.getProperDate(new Date())));
+            prof.saveProfileData();
 
             if (prof.isOnline()) {
                 MessageManager.sendMessage(punished, "&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
             }
 
-            pm.reloadProfile(prof, true);
-
-            MessageManager.broadcast("pure.tempmute", "&a" + prof.getCurrentName() + " has been muted by " + sender.getName() + " for " + DateUtil.formatDateDiff(length) + ".");
+            MessageManager.broadcast("pure.mute", "&a" + prof.getCurrentName() + " has been muted by " + sender.getName() + " for " + DateUtil.formatDateDiff(length) + ".");
         }
     }
 
@@ -179,7 +175,7 @@ public class PunishmentManager {
                 MessageManager.sendMessage(punished, "&cYou have been warned for " + reason);
             }
 
-            pm.reloadProfile(prof, true);
+            prof.saveProfileData();
 
             MessageManager.broadcast("pure.warn", "&a" + prof.getCurrentName() + " has been warned by " + sender.getName() + " for " + reason);
         }
@@ -191,7 +187,7 @@ public class PunishmentManager {
 
         if (prof != null) {
             prof.getNotes().add(new Note(punisher, reason, DateUtil.getProperDate(new Date())));
-            pm.reloadProfile(prof, true);
+            prof.saveProfileData();
 
             MessageManager.sendMessage(sender, "&aNote has been added to " + prof.getCurrentName() + "'s profile.");
         }
@@ -207,12 +203,12 @@ public class PunishmentManager {
         } else if (prof.isPermanentlyBanned()) {
             if (prof.getActivePermanentBan() != null) {
                 prof.getActivePermanentBan().setActive(false);
-                pm.reloadProfile(prof, true);
+                prof.saveProfileData();
             }
         } else if (prof.isTemporarilyBanned()) {
             if (prof.getActiveTemporaryBan() != null) {
                 prof.getActiveTemporaryBan().setLength(0);
-                pm.reloadProfile(prof, true);
+                prof.saveProfileData();
             }
         } else {
             MessageManager.sendMessage(sender, "&c" + prof.getCurrentName() + " is not banned.");
@@ -241,12 +237,12 @@ public class PunishmentManager {
         if (prof.isPermanentlyMuted()) {
             if (prof.getActivePermanentMute() != null) {
                 prof.getActivePermanentMute().setActive(false);
-                pm.reloadProfile(prof, true);
+                prof.saveProfileData();
             }
         } else if (prof.isTemporarilyMuted()) {
             if (prof.getActiveTemporaryMute() != null) {
                 prof.getActiveTemporaryMute().setLength(0);
-                pm.reloadProfile(prof, true);
+                prof.saveProfileData();
             }
         } else {
             MessageManager.sendMessage(sender, "&c" + prof.getCurrentName() + " is not muted.");

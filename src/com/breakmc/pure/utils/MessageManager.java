@@ -42,7 +42,7 @@ public class MessageManager {
 
     public static void sendStaffMessage(CommandSender sender, String message) {
         for (Player all : PlayerUtility.getOnlinePlayers()) {
-            if (all.hasPermission("skidcontrol.staffchat")) {
+            if (all.hasPermission("pure.staffchat")) {
                 all.sendMessage(ChatColor.translateAlternateColorCodes('&', "&b" + sender.getName() + ": ") + message);
             }
         }

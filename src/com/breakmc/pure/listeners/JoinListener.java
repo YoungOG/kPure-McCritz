@@ -75,7 +75,11 @@ public class JoinListener implements Listener {
             return;
         }
 
-        if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
+        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !p.hasPermission("pure.joinfullserver")) {
+            e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.translateAlternateColorCodes('&', "&b&nThe server is &cfull&b!\n\n&aDonate at www.BreakMC.com/store to join now!"));
+        }
+
+        if (e.getPlayer() != null && pm.hasProfile(p.getUniqueId())) {
             Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
 
             if (prof.isBanned()) {
@@ -86,22 +90,13 @@ public class JoinListener implements Listener {
                 if (prof.isTemporarilyBanned()) {
                     if (System.currentTimeMillis() >= prof.getActiveTemporaryBan().getLength()) {
                         prof.getActiveTemporaryBan().setLength(0);
-                        pm.reloadProfile(prof, true);
                         return;
                     }
 
                     e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(prof.getActiveTemporaryBan().getLength()) + " remaining\n\nYou can appeal your ban on our website: " + ChatColor.AQUA + "www.BreakMC.com");
                 }
             }
-        }
 
-        if (PlayerUtility.getOnlinePlayers().length >= Pure.getInstance().getPlayerCount() && !p.hasPermission("pure.joinfullserver")) {
-            e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.translateAlternateColorCodes('&', "&b&nThe server is &cfull&b!\n\n&aDonate at www.BreakMC.com/store to join now!"));
-            return;
-        }
-
-        if (e.getPlayer() != null && pm.getProfile(p.getUniqueId()) != null) {
-            Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
             prof.setCurrentName(p.getName());
             prof.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
             prof.saveProfileData();
@@ -127,6 +122,7 @@ public class JoinListener implements Listener {
         if (e.getSourceUUID() != null) {
             Profile prof = pm.getProfile(e.getSourceUUID());
             prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
+            prof.saveProfileData();
         }
     }
 

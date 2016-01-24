@@ -81,17 +81,6 @@ public class ProfileManager {
         return null;
     }
 
-    public void reloadProfile(Profile prof, boolean save) {
-        if (getLoadedProfiles().contains(prof)) {
-            getLoadedProfiles().remove(prof);
-        }
-
-        if (save)
-            prof.saveProfileData();
-
-        loadProfile(prof.getUniqueID(), false);
-    }
-
     public void createProfile(Player p, String ip) {
         Profile prof = new Profile(p.getUniqueId());
 

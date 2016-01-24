@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Getter
@@ -60,7 +61,7 @@ public class Profile {
         DBCursor dbc;
 
         if (username) {
-            dbc = pCollection.find(new BasicDBObject("currentName", currentName));
+            dbc = pCollection.find(new BasicDBObject("currentName", Pattern.compile(currentName, Pattern.CASE_INSENSITIVE)));
         } else {
             dbc = pCollection.find(new BasicDBObject("uniqueID", uniqueID.toString()));
         }
@@ -390,7 +391,10 @@ public class Profile {
         MessageManager.sendMessage(sender, "&7Online: " + (isOnline ? "&aTrue" : "&cFalse"));
         MessageManager.sendMessage(sender, "&7Playtime: &a" + DateUtil.readableTime(getPlaytime() * 1000));
         MessageManager.sendMessage(sender, "&7Rank: &a" + getGroup());
-        MessageManager.sendMessage(sender, "&7Past IPs(&a" + getIpList().size() + "&7): &a" + getIpList().toString().replace("[", "").replace("]", ""));
+
+        if (hasElevatedPermission)
+            MessageManager.sendMessage(sender, "&7Past IPs(&a" + getIpList().size() + "&7): &a" + getIpList().toString().replace("[", "").replace("]", ""));
+
         MessageManager.sendMessage(sender, "&7Past Names&7(&a" + getNameList().size() + "&7): &a" + getNameList().toString().replace("[", "").replace("]", ""));
 
         if (getAltList().size() > 0) {

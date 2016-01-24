@@ -64,7 +64,6 @@ public class Pure extends JavaPlugin {
         profileManager.saveProfiles();
         punishmentManager.saveIPBans();
 
-        DatabaseManager.getInstance().getClient().getConnector().close();
         DatabaseManager.getInstance().getClient().close();
 
         getConfig().set("player-count", playerCount);
@@ -98,7 +97,7 @@ public class Pure extends JavaPlugin {
             register.registerCommand("freezeall", new CommandFreezeAll());
             register.registerCommand("setslots", new CommandSetSlots());
             register.registerCommand("setpin", new CommandSetPin());
-            register.registerCommand("deletepin", new CommandDelPin());
+            register.registerCommand("deletepin", new CommandDelpin());
             register.registerCommand("register", new CommandRegister());
             register.registerCommand("cleardb", new CommandClearDB());
             register.registerCommand("kickall", new CommandKickAll());
