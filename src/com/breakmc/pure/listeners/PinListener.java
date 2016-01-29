@@ -134,7 +134,7 @@ public class PinListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onChat(PlayerChatEvent e) {
         Player p = e.getPlayer();
 

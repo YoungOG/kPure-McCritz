@@ -6,21 +6,23 @@ import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.database.DatabaseManager;
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.async.SingleResultCallback;
+import com.mongodb.async.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import lombok.Getter;
 import lombok.Setter;
+import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -29,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class Profile {
 
-    private DBCollection pCollection = DatabaseManager.getInstance().getCollection("profiles");
+    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
     private UUID uniqueID;
     private String currentName;
     private String currentIP;
@@ -49,235 +51,249 @@ public class Profile {
     private ArrayList<Warn> warns = new ArrayList<>();
     private ArrayList<Note> notes = new ArrayList<>();
 
-    public Profile(UUID uniqueID) {
-        this.uniqueID = uniqueID;
-    }
-
     public Profile(String currentName) {
         this.currentName = currentName;
     }
 
-    public boolean loadProfileData(boolean username) {
-        DBCursor dbc;
+    public Profile(UUID uniqueID) {
+        this.uniqueID = uniqueID;
+    }
 
-        if (username) {
-            dbc = pCollection.find(new BasicDBObject("currentName", Pattern.compile(currentName, Pattern.CASE_INSENSITIVE)));
-        } else {
-            dbc = pCollection.find(new BasicDBObject("uniqueID", uniqueID.toString()));
-        }
+    public void loadProfileData(@Nullable ProfileRequest<Profile> callback, boolean username) {
+        pCollection.find(Filters.eq((username ? "currentName" : "uniqueID"), (username ?  Pattern.compile("^" + currentName + "$", Pattern.CASE_INSENSITIVE) : uniqueID.toString()))).first((document, t) -> {
+            if (t != null) {
+                t.printStackTrace();
+                System.out.println("Failed to load " + (username ? currentName : uniqueID) + "'s profile.");
 
-        if (dbc.hasNext()) {
-            BasicDBObject dbo = (BasicDBObject) dbc.next();
+                if (callback != null)
+                    callback.onComplete(null, t);
 
-            this.uniqueID = UUID.fromString(dbo.getString("uniqueID"));
-            this.currentName = dbo.getString("currentName");
-            this.currentIP = dbo.getString("currentIP");
-            this.dateCreated = dbo.getString("dateCreated");
-            this.group = PlayerUtility.getGroup(currentName);
-            this.isOnline = dbo.getBoolean("isOnline");
-            this.playtime = dbo.getLong("playtime");
-            this.logins = dbo.getInt("logins");
-            this.pin = dbo.getString("pin");
+                return;
+            }
 
-            BasicDBList dbol1 = (BasicDBList) dbo.get("altList");
+            if (document == null) {
+                System.out.println("Failed to load " + (username ? currentName : uniqueID) + "'s profile.");
+
+                if (callback != null)
+                    callback.onComplete(null, null);
+
+                return;
+            }
+
             HashSet<UUID> altList = new HashSet<>();
-            if (dbol1 != null) {
-                altList.addAll(dbol1.stream().map(obj -> UUID.fromString((String) obj)).collect(Collectors.toList()));
+            List<String> alts = (List<String>) document.get("altList");
+            for (String s : alts) {
+                altList.add(UUID.fromString(s));
             }
 
-            BasicDBList dbol2 = (BasicDBList) dbo.get("nameList");
             HashSet<String> nameList = new HashSet<>();
-            if (dbol2 != null) {
-                nameList.addAll(dbol2.stream().map(obj -> (String) obj).collect(Collectors.toList()));
+            List<String> names = (List<String>) document.get("nameList");
+            for (String s : names) {
+                nameList.add(s);
             }
 
-            BasicDBList dbol3 = (BasicDBList) dbo.get("ipList");
             HashSet<String> ipList = new HashSet<>();
-            if (dbol3 != null) {
-                ipList.addAll(dbol3.stream().map(obj -> (String) obj).collect(Collectors.toList()));
+            List<String> ips = (List<String>) document.get("ipList");
+            for (String s : ips) {
+                ipList.add(s);
             }
 
-            BasicDBList dbol4 = (BasicDBList) dbo.get("permanent-bans");
             ArrayList<PermanentBan> permanentBans = new ArrayList<>();
-            if (dbol4 != null) {
-                for (Object obj : dbol4) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentBans.add(new PermanentBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
-                }
+            List<Document> docs1 = (List<Document>) document.get("permanent-bans");
+            for (Document doc : docs1) {
+                permanentBans.add(new PermanentBan(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
             }
 
-            BasicDBList dbol5 = (BasicDBList) dbo.get("temporary-bans");
             ArrayList<TemporaryBan> temporaryBans = new ArrayList<>();
-            if (dbol5 != null) {
-                for (Object obj : dbol5) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryBans.add(new TemporaryBan(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
-                }
+            List<Document> docs2 = (List<Document>) document.get("temporary-bans");
+            for (Document doc : docs2) {
+                temporaryBans.add(new TemporaryBan(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
             }
 
-            BasicDBList dbol6 = (BasicDBList) dbo.get("permanent-mutes");
             ArrayList<PermanentMute> permanentMutes = new ArrayList<>();
-            if (dbol6 != null) {
-                for (Object obj : dbol6) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    permanentMutes.add(new PermanentMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated"), bdo.getBoolean("isActive")));
-                }
+            List<Document> docs3 = (List<Document>) document.get("permanent-mutes");
+            for (Document doc : docs3) {
+                permanentMutes.add(new PermanentMute(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
             }
 
-            BasicDBList dbol7 = (BasicDBList) dbo.get("temporary-mutes");
             ArrayList<TemporaryMute> temporaryMutes = new ArrayList<>();
-            if (dbol7 != null) {
-                for (Object obj : dbol7) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    temporaryMutes.add(new TemporaryMute(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getLong("length"), bdo.getString("reason"), bdo.getString("dateCreated")));
-                }
+            List<Document> docs4 = (List<Document>) document.get("temporary-mutes");
+            for (Document doc : docs4) {
+                temporaryMutes.add(new TemporaryMute(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
             }
 
-            BasicDBList dbol8 = (BasicDBList) dbo.get("warns");
             ArrayList<Warn> warns = new ArrayList<>();
-            if (dbol8 != null) {
-                for (Object obj : dbol8) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    warns.add(new Warn(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
-                }
+            List<Document> docs5 = (List<Document>) document.get("warns");
+            for (Document doc : docs5) {
+                warns.add(new Warn(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getString("reason"), doc.getString("dateCreated")));
             }
 
-            BasicDBList dbol9 = (BasicDBList) dbo.get("notes");
             ArrayList<Note> notes = new ArrayList<>();
-            if (dbol9 != null) {
-                for (Object obj : dbol9) {
-                    BasicDBObject bdo = (BasicDBObject) obj;
-                    notes.add(new Note(((bdo.getString("punisherUUID") != null) ? UUID.fromString(bdo.getString("punisherUUID")) : null), bdo.getString("reason"), bdo.getString("dateCreated")));
-                }
+            List<Document> docs6 = (List<Document>) document.get("notes");
+            for (Document doc : docs6) {
+                notes.add(new Note(((doc.getString("punisherUUID") != null) ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getString("reason"), doc.getString("dateCreated")));
             }
 
-            this.permanentBans = permanentBans;
-            this.temporaryBans = temporaryBans;
-            this.permanentMutes = permanentMutes;
-            this.temporaryMutes = temporaryMutes;
-            this.warns = warns;
-            this.notes = notes;
-            this.altList = altList;
-            this.nameList = nameList;
-            this.ipList = ipList;
+            setUniqueID(UUID.fromString(document.getString("uniqueID")));
+            setCurrentName(document.getString("currentName"));
+            setCurrentIP(document.getString("currentIP"));
+            setDateCreated(document.getString("dateCreated"));
+            setGroup(PlayerUtility.getGroup(currentName));
+            setOnline(document.getBoolean("isOnline"));
+            setPlaytime(document.getLong("playtime"));
+            setLogins(document.getInteger("logins"));
+            setPin(document.getString("pin"));
+            setAltList(altList);
+            setNameList(nameList);
+            setIpList(ipList);
+            setPermanentBans(permanentBans);
+            setTemporaryBans(temporaryBans);
+            setPermanentMutes(permanentMutes);
+            setTemporaryMutes(temporaryMutes);
+            setWarns(warns);
+            setNotes(notes);
 
-            return true;
-        } else {
-            Pure.getInstance().getLogger().log(Level.WARNING, "Could not load profile data for " + uniqueID);
-            return false;
-        }
+            if (callback != null)
+                callback.onComplete(this, null);
+        });
     }
 
     public void saveProfileData() {
-        DBCursor dbc = pCollection.find(new BasicDBObject("uniqueID", uniqueID.toString()));
+        Document doc = new Document("uniqueID", uniqueID.toString());
+        doc.append("currentName", currentName);
+        doc.append("currentIP", currentIP);
+        doc.append("isOnline", isOnline);
+        doc.append("playtime", playtime);
+        doc.append("logins", logins);
+        doc.append("pin", pin);
+        doc.append("altList", altList.stream().map(UUID::toString).collect(Collectors.toList()));
+        doc.append("nameList", nameList);
+        doc.append("ipList", ipList);
 
-        BasicDBObject dbo = new BasicDBObject("uniqueID", uniqueID.toString());
-        dbo.put("currentName", currentName);
-        dbo.put("currentIP", currentIP);
-        dbo.put("dateCreated", dateCreated);
-        dbo.put("isOnline", isOnline);
-        dbo.put("playtime", playtime);
-        dbo.put("logins", logins);
-        dbo.put("pin", pin);
-
-        BasicDBList dbl1 = altList.stream().map(UUID::toString).collect(Collectors.toCollection(BasicDBList::new));
-        dbo.put("altList", dbl1);
-
-        BasicDBList dbl2 = nameList.stream().collect(Collectors.toCollection(BasicDBList::new));
-        dbo.put("nameList", dbl2);
-
-        BasicDBList dbl3 = ipList.stream().collect(Collectors.toCollection(BasicDBList::new));
-        dbo.put("ipList", dbl3);
-
-        BasicDBList dbl4 = new BasicDBList();
+        List<Document> docs1 = new ArrayList<>();
         for (PermanentBan b : permanentBans) {
-            BasicDBObject bdo = new BasicDBObject();
-            if (b.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", b.getPunisherUUID().toString());
-            }
-            bdo.append("reason", b.getReason());
-            bdo.append("dateCreated", b.getDateIssued());
-            bdo.append("isActive", b.isActive());
-            dbl4.add(bdo);
-        }
-        dbo.put("permanent-bans", dbl4);
+            Document bDoc = new Document();
 
-        BasicDBList dbl5 = new BasicDBList();
+            if (b.getPunisherUUID() != null) {
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            bDoc.append("isActive", b.isActive());
+            docs1.add(bDoc);
+        }
+        doc.append("permanent-bans", docs1);
+
+        List<Document> docs2 = new ArrayList<>();
         for (TemporaryBan b : temporaryBans) {
+            Document bDoc = new Document();
             if (System.currentTimeMillis() >= b.getLength()) {
                 b.setActive(false);
             }
 
-            BasicDBObject bdo = new BasicDBObject();
             if (b.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", b.getPunisherUUID().toString());
-            }
-            bdo.append("length", b.getLength());
-            bdo.append("reason", b.getReason());
-            bdo.append("dateCreated", b.getDateIssued());
-            dbl5.add(bdo);
-        }
-        dbo.put("temporary-bans", dbl5);
-
-        BasicDBList dbl6 = new BasicDBList();
-        for (PermanentMute m : permanentMutes) {
-            BasicDBObject bdo = new BasicDBObject();
-            if (m.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", m.getPunisherUUID().toString());
-            }
-            bdo.append("reason", m.getReason());
-            bdo.append("dateCreated", m.getDateIssued());
-            bdo.append("isActive", m.isActive());
-            dbl6.add(bdo);
-        }
-        dbo.put("permanent-mutes", dbl6);
-
-        BasicDBList dbl7 = new BasicDBList();
-        for (TemporaryMute m : temporaryMutes) {
-            if (System.currentTimeMillis() >= m.getLength()) {
-                m.setActive(false);
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
             }
 
-            BasicDBObject bdo = new BasicDBObject();
-            if (m.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", m.getPunisherUUID().toString());
-            }
-            bdo.append("length", m.getLength());
-            bdo.append("reason", m.getReason());
-            bdo.append("dateCreated", m.getDateIssued());
-            dbl7.add(bdo);
+            bDoc.append("length", b.getLength());
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            bDoc.append("isActive", b.isActive());
+            docs2.add(bDoc);
         }
-        dbo.put("temporary-mutes", dbl7);
+        doc.append("temporary-bans", docs2);
 
-        BasicDBList dbl8 = new BasicDBList();
-        for (Warn w : warns) {
-            BasicDBObject bdo = new BasicDBObject();
-            if (w.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", w.getPunisherUUID().toString());
-            }
-            bdo.append("reason", w.getReason());
-            bdo.append("dateCreated", w.getDateIssued());
-            dbl8.add(bdo);
-        }
+        List<Document> docs3 = new ArrayList<>();
+        for (PermanentMute b : permanentMutes) {
+            Document bDoc = new Document();
 
-        dbo.put("warns", dbl8);
-        BasicDBList dbl9 = new BasicDBList();
-        for (Note n : notes) {
-            BasicDBObject bdo = new BasicDBObject();
-            if (n.getPunisherUUID() != null) {
-                bdo.append("punisherUUID", n.getPunisherUUID().toString());
+            if (b.getPunisherUUID() != null) {
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
             }
-            bdo.append("reason", n.getReason());
-            bdo.append("dateCreated", n.getDateIssued());
-            dbl9.add(bdo);
-        }
-        dbo.put("notes", dbl9);
 
-        if (dbc.hasNext()) {
-            pCollection.update(dbc.next(), dbo);
-        } else {
-            pCollection.insert(dbo);
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            bDoc.append("isActive", b.isActive());
+            docs3.add(bDoc);
         }
+        doc.append("permanent-mutes", docs3);
+
+        List<Document> docs4 = new ArrayList<>();
+        for (TemporaryMute b : temporaryMutes) {
+            Document bDoc = new Document();
+            if (System.currentTimeMillis() >= b.getLength()) {
+                b.setActive(false);
+            }
+
+            if (b.getPunisherUUID() != null) {
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+
+            bDoc.append("length", b.getLength());
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            bDoc.append("isActive", b.isActive());
+            docs4.add(bDoc);
+        }
+        doc.append("temporary-mutes", docs4);
+
+        List<Document> docs5 = new ArrayList<>();
+        for (Warn b : warns) {
+            Document bDoc = new Document();
+
+            if (b.getPunisherUUID() != null) {
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            docs5.add(bDoc);
+        }
+        doc.append("warns", docs5);
+
+        List<Document> docs6 = new ArrayList<>();
+        for (Note b : notes) {
+            Document bDoc = new Document();
+
+            if (b.getPunisherUUID() != null) {
+                bDoc.append("punisherUUID", b.getPunisherUUID().toString());
+            }
+
+            bDoc.append("reason", b.getReason());
+            bDoc.append("dateCreated", b.getDateIssued());
+            docs6.add(bDoc);
+        }
+        doc.append("notes", docs6);
+
+        pCollection.find(Filters.eq("uniqueID", uniqueID.toString())).first(new SingleResultCallback<Document>() {
+            @Override
+            public void onResult(Document document, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                } else {
+                    if (document != null) {
+                        pCollection.replaceOne(Filters.eq("uniqueID", uniqueID.toString()), doc, new UpdateOptions().upsert(true), new SingleResultCallback<UpdateResult>() {
+                            @Override
+                            public void onResult(UpdateResult updateResult, Throwable t) {
+                                if (t != null) {
+                                    t.printStackTrace();
+                                }
+                            }
+                        });
+                    } else {
+                        pCollection.insertOne(doc, new SingleResultCallback<Void>() {
+                            @Override
+                            public void onResult(Void result, Throwable t) {
+                                if (t != null) {
+                                    t.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
     }
 
     public List<Player> getOnlineAlts() {

@@ -6,9 +6,9 @@ import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.database.DatabaseManager;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
+import com.mongodb.async.client.MongoCollection;
 import mkremins.fanciful.FancyMessage;
+import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -26,7 +26,7 @@ public class ProfileManager {
 
     private Pure main = Pure.getInstance();
     private List<Profile> loadedProfiles = new ArrayList<>();
-    private DBCollection pCollection = DatabaseManager.getInstance().getCollection("profiles");
+    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
 
     public ProfileManager() {
         new BukkitRunnable() {
@@ -40,45 +40,48 @@ public class ProfileManager {
     public void saveProfiles() {
         main.getLogger().log(Level.INFO, "Saving " + getLoadedProfiles().size() + " profiles.");
 
+        int count = 0;
+
         for (Profile prof : getLoadedProfiles()) {
+            count++;
             prof.setOnline(false);
             prof.saveProfileData();
         }
 
-        main.getLogger().log(Level.INFO, "Saved " + getLoadedProfiles().size() + " profiles.");
+        getLoadedProfiles().clear();
+
+        main.getLogger().log(Level.INFO, "Saved " + count + " profiles.");
     }
 
-    public void loadProfile(UUID id, boolean check) {
-        Profile profile = new Profile(id);
-        profile.loadProfileData(false);
-
+    public void loadProfile(Profile profile, boolean check) {
         getLoadedProfiles().add(profile);
 
         if (check) {
             Bukkit.getLogger().log(Level.INFO, "Performing check for " + profile.getCurrentName() + ".");
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    Pure.getInstance().getPunishmentManager().checkForValidAlts(profile.getUniqueID());
-                    Pure.getInstance().getPunishmentManager().checkForBannedAlts(profile.getUniqueID());
-                }
-            }.runTaskAsynchronously(Pure.getInstance());
+            Pure.getInstance().getPunishmentManager().checkForValidAlts(profile.getUniqueID());
+            Pure.getInstance().getPunishmentManager().checkForBannedAlts(profile.getUniqueID());
         }
     }
 
-    public Profile loadProfile(UUID id) {
-        Profile profile = new Profile(id);
-        profile.loadProfileData(false);
-        return profile;
+    public ProfileLoader requestProfile(String name, ProfileRequest<Profile> callback) {
+        Profile profile = getProfile(name);
+
+        if (profile != null) {
+            return new BasicProfileLoader(profile, callback);
+        }
+
+        return new BasicProfileLoader(name, callback);
     }
 
-    public Profile loadProfile(String name) {
-        Profile profile = new Profile(name);
-        if (profile.loadProfileData(true))
-            return profile;
+    public ProfileLoader requestProfile(UUID id, ProfileRequest<Profile> callback) {
+        Profile profile = getProfile(id);
 
-        return null;
+        if (profile != null) {
+            return new BasicProfileLoader(profile, callback);
+        }
+
+        return new BasicProfileLoader(id, callback);
     }
 
     public void createProfile(Player p, String ip) {
@@ -90,7 +93,7 @@ public class ProfileManager {
         prof.setGroup(PlayerUtility.getGroup(p.getName()));
         prof.setOnline(p.isOnline());
         prof.setPlaytime(0);
-        prof.setLogins(0);
+        prof.setLogins(1);
         prof.setPin("");
         prof.getIpList().add(prof.getCurrentIP());
         prof.getNameList().add(prof.getCurrentName());
@@ -100,13 +103,8 @@ public class ProfileManager {
 
         Bukkit.getLogger().log(Level.INFO, "Performing check for " + prof.getCurrentName() + ".");
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Pure.getInstance().getPunishmentManager().checkForValidAlts(prof.getUniqueID());
-                Pure.getInstance().getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
-            }
-        }.runTaskAsynchronously(Pure.getInstance());
+        Pure.getInstance().getPunishmentManager().checkForValidAlts(prof.getUniqueID());
+        Pure.getInstance().getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
     }
 
     public void lookup(CommandSender sender, String address) {
@@ -127,10 +125,6 @@ public class ProfileManager {
         }
     }
 
-    public boolean hasProfile(UUID id) {
-        return pCollection.find(new BasicDBObject("uniqueID", id.toString())).hasNext();
-    }
-
     public boolean hasLoadedProfile(UUID id) {
         for (Profile prof : getLoadedProfiles()) {
             if (prof.getUniqueID().equals(id)) {
@@ -148,7 +142,7 @@ public class ProfileManager {
             }
         }
 
-        return loadProfile(id);
+        return null;
     }
 
     public Profile getProfile(String name) {
@@ -158,7 +152,7 @@ public class ProfileManager {
             }
         }
 
-        return loadProfile(name);
+        return null;
     }
 
     public List<Profile> getLoadedProfiles() {

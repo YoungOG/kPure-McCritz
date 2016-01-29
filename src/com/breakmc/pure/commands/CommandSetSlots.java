@@ -30,11 +30,12 @@ public class CommandSetSlots extends BaseCommand {
         }
 
         if (Integer.parseInt(args[0]) > Bukkit.getServer().getMaxPlayers()) {
-            MessageManager.sendMessage(player, "&cYou cannot set the playercount higher than what it is set to in the server properties.");
+            MessageManager.sendMessage(player, "&cYou cannot set the playercount higher than what it is set to in the server-properties.");
             return;
         }
 
         main.setPlayerCount(Integer.parseInt(args[0]));
         main.getConfig().set("player-count", Integer.parseInt(args[0]));
+        MessageManager.sendMessage(sender, "&aMax Slots set to " + main.getPlayerCount());
     }
 }

@@ -3,6 +3,7 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.command.BaseCommand;
@@ -30,16 +31,26 @@ public class CommandDelpin extends BaseCommand {
     public void execute(CommandSender sender, String[] args) {
         Player p = (Player) sender;
 
-        Profile prof = pm.getProfile(args[0]);
+        pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+            @Override
+            public void onComplete(Profile result, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
 
-        if (prof == null) {
-            MessageManager.sendMessage(p, "&cPlayer \"" + args[0] + "\" could not be found.");
-            return;
-        }
+                if (result == null) {
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
 
-        prof.setPin("");
+                result.setPin("");
+                result.saveProfileData();
 
-        MessageManager.sendMessage(p, "&eYou have deleted " + args[0] + "'s PIN.");
+                MessageManager.sendMessage(p, "&eYou have deleted " + args[0] + "'s PIN.");
+            }
+        });
     }
 
     public List<String> tabComplete(String[] args, CommandSender sender) {

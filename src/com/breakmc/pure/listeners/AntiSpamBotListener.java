@@ -1,5 +1,6 @@
 package com.breakmc.pure.listeners;
 
+import com.breakmc.pure.Pure;
 import net.minecraft.util.gnu.trove.TCollections;
 import net.minecraft.util.gnu.trove.map.TObjectIntMap;
 import net.minecraft.util.gnu.trove.map.hash.TObjectIntHashMap;
@@ -14,14 +15,15 @@ import java.net.InetAddress;
 
 public class AntiSpamBotListener implements Listener {
 
+    private Pure main = Pure.getInstance();
     private TObjectIntMap<InetAddress> addresses = TCollections.synchronizedMap(new TObjectIntHashMap<>());
 
     @EventHandler
     public void preLogin(PlayerPreLoginEvent e) {
         if (e.getResult() == PlayerPreLoginEvent.Result.ALLOWED) {
-            if (addresses.get(e.getAddress()) >= 3) {
-                e.disallow(PlayerPreLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You already have 3 accounts using this IP Address.");
-                e.setKickMessage(ChatColor.RED + "You already have 3 accounts using this IP Address.");
+            if (addresses.get(e.getAddress()) >= main.getConfig().getInt("anti-spambot.account-limit")) {
+                e.disallow(PlayerPreLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You already have " + main.getConfig().getInt("anti-spambot.account-limit") + " accounts using this IP Address.");
+                e.setKickMessage(ChatColor.RED + "You already have " + main.getConfig().getInt("anti-spambot.account-limit") + " accounts using this IP Address.");
             }
         }
     }

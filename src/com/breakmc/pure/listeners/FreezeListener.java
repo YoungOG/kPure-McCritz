@@ -46,15 +46,13 @@ public class FreezeListener implements Listener {
                 if (e.getTo().getX() != e.getFrom().getX() || e.getTo().getZ() != e.getFrom().getZ()) {
                     e.setTo(e.getFrom());
                 }
-            } else {
-                if (p.getWalkSpeed() != 0.2F) {
-                    p.setWalkSpeed(0.2F);
-                }
             }
         }
 
         if (pum.getFrozen().contains(p.getUniqueId())) {
-            e.setTo(e.getFrom());
+            if (e.getTo().getX() != e.getFrom().getX() || e.getTo().getZ() != e.getFrom().getZ()) {
+                e.setTo(e.getFrom());
+            }
         }
     }
 

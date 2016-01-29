@@ -3,6 +3,7 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
@@ -30,13 +31,23 @@ public class CommandUnMute extends BaseCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (pm.getProfile(args[0]) == null) {
-            MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
-            return;
-        }
+        pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+            @Override
+            public void onComplete(Profile result, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
 
-        Profile prof = pm.getProfile(args[0]);
-        pum.unmute(sender, prof.getUniqueID());
+                if (result == null) {
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
+
+                pum.unmute(sender, result);
+            }
+        });
     }
 
     public List<String> tabComplete(String[] args, CommandSender sender) {

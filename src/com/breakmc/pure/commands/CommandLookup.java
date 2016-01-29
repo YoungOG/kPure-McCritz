@@ -3,16 +3,15 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
-import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.IPUtils;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.command.BaseCommand;
 import com.breakmc.pure.utils.command.CommandUsageBy;
 import com.breakmc.pure.utils.database.DatabaseManager;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
+import com.mongodb.async.SingleResultCallback;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -27,8 +26,8 @@ public class CommandLookup extends BaseCommand {
     private PunishmentManager pum = Pure.getInstance().getPunishmentManager();
 
     public CommandLookup() {
-        super("lookup", "pure.lookup", CommandUsageBy.ANYONE, "history", "seen", "info");
-        setUsage("&cImproper Usage! /lookup (player/address/info)");
+        super("lookup", "pure.lookup", CommandUsageBy.ANYONE, "profile", "seen", "info");
+        setUsage("&cImproper Usage! /lookup (player/ip/info)");
         setMinArgs(1);
         setMaxArgs(1);
     }
@@ -37,30 +36,37 @@ public class CommandLookup extends BaseCommand {
     public void execute(CommandSender sender, String[] args) {
         if (args[0].equalsIgnoreCase("info")) {
             MessageManager.sendMessage(sender, "&aThere are currently &b" + pm.getLoadedProfiles().size() + " &aloaded profiles on this instance.");
-            MessageManager.sendMessage(sender, "&aThere are a total of &b" + DatabaseManager.getInstance().getCollection("profiles").count() + " &aprofiles on the network.");
-
-            long playtime = 0L;
-            DBCursor dbc = DatabaseManager.getInstance().getCollection("profiles").find();
-            while (dbc.hasNext()) {
-                BasicDBObject dbo = (BasicDBObject) dbc.next();
-
-                if (dbo.getLong("playtime") > 0L) {
-                    playtime += dbo.getLong("playtime");
+            DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles").count(new SingleResultCallback<Long>() {
+                @Override
+                public void onResult(Long aLong, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                    } else {
+                        MessageManager.sendMessage(sender, "&aThere are a total of &b" + aLong + " &aprofiles on the network.");
+                    }
                 }
-            }
-
-            MessageManager.sendMessage(sender, "&aThere is a total playtime of &b" + DateUtil.readableTime(playtime * 1000));
+            });
         } else if (!IPUtils.isValidIP(args[0])) {
-            if (pm.getProfile(args[0]) == null) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
-                return;
-            }
+            pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+                @Override
+                public void onComplete(Profile result, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
 
-            Profile prof = pm.getProfile(args[0]);
-            prof.lookup(sender);
+                    if (result == null) {
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
+
+                    result.lookup(sender);
+                }
+            });
         } else {
             if (!sender.hasPermission("pure.lookup.admin")) {
-                MessageManager.sendMessage(sender, "&cYou do not have permission to lookup addresses.");
+                MessageManager.sendMessage(sender, "&cYou do not have permission to lookup IP Addresses.");
                 return;
             }
 

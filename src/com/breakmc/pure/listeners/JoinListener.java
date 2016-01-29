@@ -3,6 +3,7 @@ package com.breakmc.pure.listeners;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
@@ -47,23 +48,26 @@ public class JoinListener implements Listener {
             }
         }
 
-        if (!pm.hasProfile(p.getUniqueId()) && !pm.hasLoadedProfile(p.getUniqueId())) {
-            System.out.println("Creating " + p.getName() + "'s profile!");
-            pm.createProfile(p, p.getAddress().getAddress().getHostAddress().replace("/", ""));
-        } else if (!pm.hasLoadedProfile(p.getUniqueId()) && pm.hasProfile(p.getUniqueId())) {
-            System.out.println("Loading " + p.getName() + "'s profile!");
-            pm.loadProfile(p.getUniqueId(), true);
+        pm.requestProfile(p.getUniqueId(), new ProfileRequest<Profile>() {
+            @Override
+            public void onComplete(Profile result, Throwable throwable) {
+                if (throwable != null || result == null) {
+                    if (throwable != null)
+                        throwable.printStackTrace();
 
-            Profile prof = pm.getProfile(p.getUniqueId());
-            prof.setOnline(p.isOnline());
-            prof.setLogins(prof.getLogins() + 1);
-            prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
-            prof.saveProfileData();
+                    System.out.println("Creating " + p.getName() + "'s profile!");
+                    pm.createProfile(p, p.getAddress().getAddress().getHostAddress().replace("/", ""));
+                } else {
+                    System.out.println("Loading " + p.getName() + "'s profile!");
+                    pm.loadProfile(result, true);
 
-            System.out.println("Loaded " + p.getName() + "'s profile!");
-        } else {
-            System.out.println("Could not find/load " + p.getName() + "'s profile!");
-        }
+                    result.setOnline(p.isOnline());
+                    result.setLogins(result.getLogins() + 1);
+                    result.setGroup(PlayerUtility.getGroup(result.getCurrentName()));
+                    result.saveProfileData();
+                }
+            }
+        });
     }
 
     @EventHandler
@@ -79,27 +83,21 @@ public class JoinListener implements Listener {
             e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.translateAlternateColorCodes('&', "&b&nThe server is &cfull&b!\n\n&aDonate at www.BreakMC.com/store to join now!"));
         }
 
-        if (e.getPlayer() != null && pm.hasProfile(p.getUniqueId())) {
-            Profile prof = pm.getProfile(e.getPlayer().getUniqueId());
-
-            if (prof.isBanned()) {
-                if (prof.isPermanentlyBanned()) {
-                    e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You have been permanently banned.\n\nYou can appeal your ban on our website: " + ChatColor.AQUA + "www.BreakMC.com");
-                }
-
-                if (prof.isTemporarilyBanned()) {
-                    if (System.currentTimeMillis() >= prof.getActiveTemporaryBan().getLength()) {
-                        prof.getActiveTemporaryBan().setLength(0);
-                        return;
+        if (e.getPlayer() != null) {
+            pm.requestProfile(e.getPlayer().getUniqueId(), new ProfileRequest<Profile>() {
+                @Override
+                public void onComplete(Profile result, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                    } else {
+                        if (result != null) {
+                            result.setCurrentName(p.getName());
+                            result.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
+                            result.saveProfileData();
+                        }
                     }
-
-                    e.disallow(PlayerLoginEvent.Result.KICK_OTHER, ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(prof.getActiveTemporaryBan().getLength()) + " remaining\n\nYou can appeal your ban on our website: " + ChatColor.AQUA + "www.BreakMC.com");
                 }
-            }
-
-            prof.setCurrentName(p.getName());
-            prof.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
-            prof.saveProfileData();
+            });
         }
     }
 

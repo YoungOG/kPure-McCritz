@@ -3,6 +3,7 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
@@ -32,17 +33,27 @@ public class CommandMute extends BaseCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (pm.getProfile(args[0]) == null) {
-            MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
-            return;
-        }
+        pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+            @Override
+            public void onComplete(Profile result, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
 
-        try {
-            Profile prof = pm.getProfile(args[0]);
-            pum.temporarilyMute(sender, prof.getUniqueID(), DateUtil.parseDateDiff(args[1], true), StringUtils.join(args, " ", 2, args.length));
-        } catch (Exception ignored) {
-            MessageManager.sendMessage(sender, "&cImproper time format!");
-        }
+                if (result == null) {
+                    MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                    return;
+                }
+
+                try {
+                    pum.temporarilyMute(sender, result, DateUtil.parseDateDiff(args[1], true), StringUtils.join(args, " ", 2, args.length));
+                } catch (Exception ignored) {
+                    MessageManager.sendMessage(sender, "&cImproper time format!");
+                }
+            }
+        });
     }
 
     public List<String> tabComplete(String[] args, CommandSender sender) {

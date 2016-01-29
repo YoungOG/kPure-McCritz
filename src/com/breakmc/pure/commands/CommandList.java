@@ -63,7 +63,7 @@ public class CommandList extends BaseCommand {
                 members.add("&a" + prof.getCurrentName());
             } else if (prof.getGroup().equalsIgnoreCase("Youtube+") || prof.getGroup().equalsIgnoreCase("Youtube")) {
                 youtubers.add("&d" + prof.getCurrentName());
-            } else if (prof.getGroup().equalsIgnoreCase("Member")) {
+            } else if (prof.getGroup().equalsIgnoreCase("Normal")) {
                 normals.add("&7" + prof.getCurrentName());
             }
         });
@@ -93,7 +93,7 @@ public class CommandList extends BaseCommand {
         owners.addAll(youtubers);
         owners.addAll(normals);
 
-        StringBuilder finishedList = new StringBuilder("&7(&b" + PlayerUtility.getOnlinePlayers().length + "&7/&b" + Pure.getInstance().getPlayerCount() + "&7)");
+        StringBuilder finishedList = new StringBuilder("&7(&b" + PlayerUtility.getOnlinePlayers().length + "&7/&b" + Pure.getInstance().getPlayerCount() + "&7) ");
 
         for (int i = 0; i < owners.size(); i++) {
             finishedList.append(owners.get(i));

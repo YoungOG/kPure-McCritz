@@ -2,6 +2,7 @@ package com.breakmc.pure.commands;
 
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.punishment.PunishmentManager;
+import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.command.BaseCommand;
 import com.breakmc.pure.utils.command.CommandUsageBy;
 import org.bukkit.command.CommandSender;
@@ -12,13 +13,21 @@ public class CommandSlowChat extends BaseCommand {
 
     public CommandSlowChat() {
         super("slowchat", "pure.slowchat", CommandUsageBy.ANYONE);
-        setUsage("&cImproper usage! /slowchat");
+        setUsage("&cImproper usage! /slowchat (seconds)");
         setMinArgs(0);
-        setMaxArgs(0);
+        setMaxArgs(1);
 
     }
 
     public void execute(CommandSender sender, String[] args) {
-        pum.setChatSlowed(sender);
+        if (args.length == 0) {
+            pum.setChatSlowed(sender, 10);
+        } else {
+            try {
+                pum.setChatSlowed(sender, Integer.parseInt(args[0]));
+            } catch (NumberFormatException e) {
+                MessageManager.sendMessage(sender, "&cYou must input a valid number.");
+            }
+        }
     }
 }

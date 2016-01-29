@@ -31,6 +31,7 @@ public class CommandSetPin extends BaseCommand {
         }
 
         profile.setPin(args[0]);
+        profile.saveProfileData();
 
         MessageManager.sendMessage(p, "&7Your PIN has been set to " + args[0] + ".");
     }

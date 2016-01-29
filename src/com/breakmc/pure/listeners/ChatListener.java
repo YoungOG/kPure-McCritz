@@ -22,9 +22,9 @@ public class ChatListener implements Listener {
         Player p = e.getPlayer();
 
         if (pum.isChatSlowed()) {
-            if (!p.hasPermission("pure.slowchat") && !Cooldowns.tryCooldown(p.getUniqueId(), "SlowedChatCooldown", 10000)) {
+            if (!p.hasPermission("pure.slowchat") && !Cooldowns.tryCooldown(p.getUniqueId(), "SlowedChatCooldown", (pum.getChatSlowSeconds() * 1000))) {
                 e.setCancelled(true);
-                MessageManager.sendMessage(p, "&7Chat is currently &bslowed&7, you may only speak once every &b10 &7seconds.");
+                MessageManager.sendMessage(p, "&7Chat is currently &bslowed&7, you may only speak once every &b" + pum.getChatSlowSeconds() + " &7seconds.");
             }
         }
 
@@ -57,7 +57,7 @@ public class ChatListener implements Listener {
         }
 
         if (lastUse + 1000L > time) {
-            MessageManager.sendMessage(p, "&cPlease avoid spamming chat.");
+            MessageManager.sendMessage(p, "&cPlease avoid spamming the chat.");
             e.setCancelled(true);
         }
 

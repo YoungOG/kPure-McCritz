@@ -14,7 +14,7 @@ public class Distance {
     public Distance(Location from, Location to) {
         l1Y = to.getY();
         l2Y = from.getY();
-
+        //
         XDiff = Math.abs(to.getX() - from.getX());
         ZDiff = Math.abs(to.getZ() - from.getZ());
         YDiff = Math.abs(l1Y - l2Y);

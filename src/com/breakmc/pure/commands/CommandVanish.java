@@ -3,6 +3,7 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
@@ -43,27 +44,36 @@ public class CommandVanish extends BaseCommand {
         }
 
         if (args.length == 1) {
-            Profile prof = pm.getProfile(args[0]);
+            pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+                @Override
+                public void onComplete(Profile result, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
 
-            if (prof == null) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
-                return;
-            }
+                    if (result == null) {
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
 
-            if (Bukkit.getPlayer(prof.getUniqueID()) == null) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
-                return;
-            }
+                    if (!result.isOnline()) {
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" is not online.");
+                        return;
+                    }
 
-            Player t = Bukkit.getPlayer(prof.getUniqueID());
+                    Player t = Bukkit.getPlayer(result.getUniqueID());
 
-            if (pum.isVanished(t)) {
-                pum.removeVanisher(t);
-                MessageManager.sendMessage(sender, "&aVanish disabled for " + prof.getCurrentName());
-            } else {
-                pum.addVanisher(t);
-                MessageManager.sendMessage(sender, "&aVanish enabled for " + prof.getCurrentName());
-            }
+                    if (pum.isVanished(t)) {
+                        pum.removeVanisher(t);
+                        MessageManager.sendMessage(sender, "&aVanish disabled for " + t.getName());
+                    } else {
+                        pum.addVanisher(t);
+                        MessageManager.sendMessage(sender, "&aVanish enabled for " + t.getName());
+                    }
+                }
+            });
         }
     }
 

@@ -3,6 +3,7 @@ package com.breakmc.pure.commands;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.IPUtils;
 import com.breakmc.pure.utils.MessageManager;
@@ -33,13 +34,23 @@ public class CommandBanIP extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (!IPUtils.isValidIP(args[0])) {
-            if (pm.getProfile(args[0]) == null) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found");
-                return;
-            }
+            pm.requestProfile(args[0], new ProfileRequest<Profile>() {
+                @Override
+                public void onComplete(Profile result, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
 
-            Profile prof = pm.getProfile(args[0]);
-            pum.banIP(sender, prof.getCurrentIP(), StringUtils.join(args, " ", 1, args.length));
+                    if (result == null) {
+                        MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not found.");
+                        return;
+                    }
+
+                    pum.banIP(sender, result.getCurrentIP(), StringUtils.join(args, " ", 1, args.length));
+                }
+            });
         } else {
             pum.banIP(sender, args[0], StringUtils.join(args, " ", 1, args.length));
         }

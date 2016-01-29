@@ -4,6 +4,7 @@ import com.breakmc.pure.commands.*;
 import com.breakmc.pure.listeners.*;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.PunishmentManager;
 import com.breakmc.pure.utils.Lag;
 import com.breakmc.pure.utils.PlayerUtility;
@@ -45,18 +46,27 @@ public class Pure extends JavaPlugin {
         playerCount = getConfig().getInt("player-count");
 
         for (Player p : PlayerUtility.getOnlinePlayers()) {
-            Profile tempProf = profileManager.getProfile(p.getUniqueId());
+            profileManager.requestProfile(p.getUniqueId(), new ProfileRequest<Profile>() {
+                @Override
+                public void onComplete(Profile result, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                        return;
+                    }
 
-            profileManager.getLoadedProfiles().remove(tempProf);
-            profileManager.loadProfile(p.getUniqueId(), true);
+                    if (result == null) {
+                        return;
+                    }
 
-            Profile prof = profileManager.getProfile(p.getUniqueId());
+                    System.out.println("Loading " + p.getName() + "'s profile!");
+                    profileManager.loadProfile(result, true);
 
-            prof.setOnline(p.isOnline());
-            prof.setLogins(prof.getLogins() + 1);
-            prof.setGroup(PlayerUtility.getGroup(prof.getCurrentName()));
-            prof.saveProfileData();
-            System.out.println("Reloaded " + p.getName() + "'s profile!");
+                    result.setOnline(p.isOnline());
+                    result.setLogins(result.getLogins() + 1);
+                    result.setGroup(PlayerUtility.getGroup(result.getCurrentName()));
+                    result.saveProfileData();
+                }
+            });
         }
     }
 
@@ -64,7 +74,7 @@ public class Pure extends JavaPlugin {
         profileManager.saveProfiles();
         punishmentManager.saveIPBans();
 
-        DatabaseManager.getInstance().getClient().close();
+        DatabaseManager.getInstance().getMongoClient().close();
 
         getConfig().set("player-count", playerCount);
         saveConfig();
@@ -99,7 +109,6 @@ public class Pure extends JavaPlugin {
             register.registerCommand("setpin", new CommandSetPin());
             register.registerCommand("deletepin", new CommandDelpin());
             register.registerCommand("register", new CommandRegister());
-            register.registerCommand("cleardb", new CommandClearDB());
             register.registerCommand("kickall", new CommandKickAll());
             register.registerCommand("hub", new CommandHub());
             register.registerCommand("clearmobs", new CommandClearMobs());

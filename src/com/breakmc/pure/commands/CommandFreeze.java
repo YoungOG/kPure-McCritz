@@ -29,7 +29,7 @@ public class CommandFreeze extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (Bukkit.getPlayer(args[0]) == null) {
-            MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found");
+            MessageManager.sendMessage(sender, "&cPlayer \"" + args[0] + "\" could not be found.");
             return;
         }
 

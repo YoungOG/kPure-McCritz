@@ -3,15 +3,19 @@ package com.breakmc.pure.punishment;
 import com.breakmc.pure.Pure;
 import com.breakmc.pure.profile.Profile;
 import com.breakmc.pure.profile.ProfileManager;
+import com.breakmc.pure.profile.ProfileRequest;
 import com.breakmc.pure.punishment.punishments.*;
 import com.breakmc.pure.utils.DateUtil;
 import com.breakmc.pure.utils.MessageManager;
 import com.breakmc.pure.utils.PlayerUtility;
 import com.breakmc.pure.utils.SpecialPlayerInventory;
 import com.breakmc.pure.utils.database.DatabaseManager;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.async.SingleResultCallback;
+import com.mongodb.async.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
+import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -23,24 +27,39 @@ import java.util.*;
 public class PunishmentManager {
 
     private ProfileManager pm = Pure.getInstance().getProfileManager();
-    private DBCollection bCollection = DatabaseManager.getInstance().getCollection("ipbans");
-    private DBCollection pCollection = DatabaseManager.getInstance().getCollection("profiles");
-    public final List<IPBan> ipBanList = new ArrayList<>();
+    private MongoCollection<Document> bCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("ipbans");
+    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
+    private final List<IPBan> ipBanList = new ArrayList<>();
     private List<UUID> frozen = new ArrayList<>();
     private HashSet<UUID> vanished = new HashSet<>();
     private final Map<UUID, SpecialPlayerInventory> inventories = new HashMap<>();
+    private int chatSlowSeconds = 0;
     private boolean isChatSlowed = false;
     private boolean isChatMuted = false;
     private boolean isServerFrozen = false;
 
     public PunishmentManager() {
-        DBCursor dbc = bCollection.find();
+        bCollection.find().into(new ArrayList<>(), new SingleResultCallback<ArrayList<Document>>() {
+            @Override
+            public void onResult(ArrayList<Document> documents, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                } else {
+                    for (Document doc : documents) {
+                        ipBanList.add(new IPBan(doc.getString("address"), (doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null), doc.getString("reason"), doc.getString("dateIssued"), doc.getBoolean("isActive")));
+                    }
 
-        while (dbc.hasNext()) {
-            BasicDBObject dbo = (BasicDBObject) dbc.next();
+                    System.out.println("Loaded " + ipBanList.size() + " ip-bans into the blacklist.");
+                }
+            }
+        });
 
-            ipBanList.add(new IPBan(dbo.getString("address"), (dbo.getString("punisherUUID") != null ? UUID.fromString(dbo.getString("punisherUUID")) : null), dbo.getString("reason"), dbo.getString("dateIssued"), dbo.getBoolean("isActive")));
-        }
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                saveIPBans();
+            }
+        }.runTaskTimer(Pure.getInstance(), 0L, 300*20);
 
         new BukkitRunnable() {
             @Override
@@ -61,45 +80,43 @@ public class PunishmentManager {
         }.runTaskTimerAsynchronously(Pure.getInstance(), 0, 10 * 20L);
     }
 
-    public void permanentlyBan(CommandSender sender, UUID punished, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void permanentlyBan(CommandSender sender, Profile profile, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            if (prof.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + prof.getCurrentName() + "\" is already banned.");
+        if (profile != null) {
+            if (profile.isBanned()) {
+                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already banned.");
                 return;
             }
 
-            prof.getPermanentBans().add(new PermanentBan(punisher, reason, DateUtil.getProperDate(new Date()), true));
-            prof.saveProfileData();
+            profile.getPermanentBans().add(new PermanentBan(punisher, reason, DateUtil.getProperDate(new Date()), true));
+            profile.saveProfileData();
 
-            if (Bukkit.getPlayer(prof.getUniqueID()) != null) {
-                Bukkit.getPlayer(prof.getUniqueID()).kickPlayer(ChatColor.RED + "You have been permanently banned.n\nYou can appeal your ban on our website " + ChatColor.AQUA + "www.BreakMC.com");
+            if (Bukkit.getPlayer(profile.getUniqueID()) != null) {
+                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been permanently banned.\n\nYou can appeal your ban on our website " + ChatColor.AQUA + "www.BreakMC.com");
             }
 
-            MessageManager.broadcast("&a" + prof.getCurrentName() + " has been permanently banned by " + sender.getName() + ".");
+            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been permanently banned by " + sender.getName() + ".");
         }
     }
 
-    public void temporarilyBan(CommandSender sender, UUID punished, long length, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void temporarilyBan(CommandSender sender, Profile profile, long length, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            if (prof.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + prof.getCurrentName() + "\" is already banned.");
+        if (profile != null) {
+            if (profile.isBanned()) {
+                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already banned.");
                 return;
             }
 
-            prof.getTemporaryBans().add(new TemporaryBan(punisher, length, reason, DateUtil.getProperDate(new Date())));
-            prof.saveProfileData();
+            profile.getTemporaryBans().add(new TemporaryBan(punisher, length, reason, DateUtil.getProperDate(new Date())));
+            profile.saveProfileData();
 
-            if (Bukkit.getPlayer(prof.getUniqueID()) != null) {
-                Bukkit.getPlayer(prof.getUniqueID()).kickPlayer(ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(prof.getActiveTemporaryBan().getLength()) + " remaining.\n\nYou can not appeal a temporary ban.");
+            if (Bukkit.getPlayer(profile.getUniqueID()) != null) {
+                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(profile.getActiveTemporaryBan().getLength()) + " remaining.\n\nYou can not appeal a temporary ban.");
             }
 
-            MessageManager.broadcast("&a" + prof.getCurrentName() + " has been temporarily banned by " + sender.getName() + ".");
+            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been temporarily banned by " + sender.getName() + ".");
         }
     }
 
@@ -122,100 +139,93 @@ public class PunishmentManager {
         MessageManager.broadcast("pure.banip", "&a" + address + " has been blacklisted by " + sender.getName() + ".");
     }
 
-    public void permanentlyMute(CommandSender sender, UUID punished, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void permanentlyMute(CommandSender sender, Profile profile, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            if (prof.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + prof.getCurrentName() + "\" is already muted.");
+        if (profile != null) {
+            if (profile.isBanned()) {
+                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already muted.");
                 return;
             }
 
-            prof.getPermanentMutes().add(new PermanentMute(punisher, reason, DateUtil.getProperDate(new Date()), true));
-            prof.saveProfileData();
+            profile.getPermanentMutes().add(new PermanentMute(punisher, reason, DateUtil.getProperDate(new Date()), true));
+            profile.saveProfileData();
 
-            if (prof.isOnline()) {
-                MessageManager.sendMessage(punished, "&cYou have been permanently muted.");
+            if (profile.isOnline()) {
+                MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been permanently muted.");
             }
 
-            MessageManager.broadcast("pure.permmute", "&a" + prof.getCurrentName() + " has been muted by " + sender.getName() + ".");
+            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been muted by " + sender.getName() + ".");
         }
     }
 
-    public void temporarilyMute(CommandSender sender, UUID punished, long length, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void temporarilyMute(CommandSender sender, Profile profile, long length, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            if (prof.isMuted()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + prof.getCurrentName() + "\" is already muted.");
+        if (profile != null) {
+            if (profile.isMuted()) {
+                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already muted.");
                 return;
             }
 
-            prof.getTemporaryMutes().add(new TemporaryMute(punisher, length, reason, DateUtil.getProperDate(new Date())));
-            prof.saveProfileData();
+            profile.getTemporaryMutes().add(new TemporaryMute(punisher, length, reason, DateUtil.getProperDate(new Date())));
+            profile.saveProfileData();
 
-            if (prof.isOnline()) {
-                MessageManager.sendMessage(punished, "&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
+            if (profile.isOnline()) {
+                MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
             }
 
-            MessageManager.broadcast("pure.mute", "&a" + prof.getCurrentName() + " has been muted by " + sender.getName() + " for " + DateUtil.formatDateDiff(length) + ".");
+            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been muted by " + sender.getName() + " for " + DateUtil.formatDateDiff(length) + ".");
         }
     }
 
-    public void warn(CommandSender sender, UUID punished, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void warn(CommandSender sender, Profile profile, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            prof.getWarns().add(new Warn(punisher, reason, DateUtil.getProperDate(new Date())));
+        if (profile != null) {
+            profile.getWarns().add(new Warn(punisher, reason, DateUtil.getProperDate(new Date())));
+            profile.saveProfileData();
 
-            if (prof.isOnline()) {
-                MessageManager.sendMessage(punished, "&cYou have been warned for " + reason);
+            if (profile.isOnline()) {
+                MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been warned for " + reason);
             }
 
-            prof.saveProfileData();
-
-            MessageManager.broadcast("pure.warn", "&a" + prof.getCurrentName() + " has been warned by " + sender.getName() + " for " + reason);
+            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been warned by " + sender.getName() + " for " + reason);
         }
     }
 
-    public void note(CommandSender sender, UUID punished, String reason) {
-        Profile prof = pm.getProfile(punished);
+    public void note(CommandSender sender, Profile profile, String reason) {
         UUID punisher = ((sender instanceof Player) ? ((Player) sender).getUniqueId() : null);
 
-        if (prof != null) {
-            prof.getNotes().add(new Note(punisher, reason, DateUtil.getProperDate(new Date())));
-            prof.saveProfileData();
+        if (profile != null) {
+            profile.getNotes().add(new Note(punisher, reason, DateUtil.getProperDate(new Date())));
+            profile.saveProfileData();
 
-            MessageManager.sendMessage(sender, "&aNote has been added to " + prof.getCurrentName() + "'s profile.");
+            MessageManager.sendMessage(sender, "&aNote has been added to " + profile.getCurrentName() + "'s profile.");
         }
     }
 
-    public void unban(CommandSender sender, UUID punished) {
-        Profile prof = pm.getProfile(punished);
-
-        if (isIPBanned(prof.getCurrentIP())) {
-            if (getActiveIPBan(prof.getCurrentIP()) != null) {
-                getActiveIPBan(prof.getCurrentIP()).setActive(false);
+    public void unban(CommandSender sender, Profile profile) {
+        if (isIPBanned(profile.getCurrentIP())) {
+            if (getActiveIPBan(profile.getCurrentIP()) != null) {
+                getActiveIPBan(profile.getCurrentIP()).setActive(false);
             }
-        } else if (prof.isPermanentlyBanned()) {
-            if (prof.getActivePermanentBan() != null) {
-                prof.getActivePermanentBan().setActive(false);
-                prof.saveProfileData();
+        } else if (profile.isPermanentlyBanned()) {
+            if (profile.getActivePermanentBan() != null) {
+                profile.getActivePermanentBan().setActive(false);
+                profile.saveProfileData();
             }
-        } else if (prof.isTemporarilyBanned()) {
-            if (prof.getActiveTemporaryBan() != null) {
-                prof.getActiveTemporaryBan().setLength(0);
-                prof.saveProfileData();
+        } else if (profile.isTemporarilyBanned()) {
+            if (profile.getActiveTemporaryBan() != null) {
+                profile.getActiveTemporaryBan().setLength(0);
+                profile.saveProfileData();
             }
         } else {
-            MessageManager.sendMessage(sender, "&c" + prof.getCurrentName() + " is not banned.");
+            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " is not banned.");
             return;
         }
 
-        MessageManager.broadcast("pure.unban", "&a" + prof.getCurrentName() + " has been unbanned by " + sender.getName() + ".");
+        MessageManager.broadcast("&a" + profile.getCurrentName() + " has been unbanned by " + sender.getName() + ".");
     }
 
     public void unban(CommandSender sender, String address) {
@@ -231,59 +241,65 @@ public class PunishmentManager {
         MessageManager.broadcast("pure.unban", "&a" + address + " has been unbanned by " + sender.getName() + ".");
     }
 
-    public void unmute(CommandSender sender, UUID punished) {
-        Profile prof = pm.getProfile(punished);
-
-        if (prof.isPermanentlyMuted()) {
-            if (prof.getActivePermanentMute() != null) {
-                prof.getActivePermanentMute().setActive(false);
-                prof.saveProfileData();
+    public void unmute(CommandSender sender, Profile profile) {
+        if (profile.isPermanentlyMuted()) {
+            if (profile.getActivePermanentMute() != null) {
+                profile.getActivePermanentMute().setActive(false);
+                profile.saveProfileData();
             }
-        } else if (prof.isTemporarilyMuted()) {
-            if (prof.getActiveTemporaryMute() != null) {
-                prof.getActiveTemporaryMute().setLength(0);
-                prof.saveProfileData();
+        } else if (profile.isTemporarilyMuted()) {
+            if (profile.getActiveTemporaryMute() != null) {
+                profile.getActiveTemporaryMute().setLength(0);
+                profile.saveProfileData();
             }
         } else {
-            MessageManager.sendMessage(sender, "&c" + prof.getCurrentName() + " is not muted.");
+            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " is not muted.");
             return;
         }
 
-        MessageManager.broadcast("pure.unban", "&a" + prof.getCurrentName() + " has been unmuted by " + sender.getName() + ".");
+        MessageManager.broadcast("pure.unban", "&a" + profile.getCurrentName() + " has been unmuted by " + sender.getName() + ".");
     }
 
     public void saveIPBans() {
         for (IPBan b : ipBanList) {
-            DBCursor dbc = bCollection.find(new BasicDBObject("address", b.getAddress()));
-            BasicDBObject dbo = new BasicDBObject();
+            Document doc = new Document("address", b.getAddress());
 
-            dbo.append("address", b.getAddress());
-            if (b.getPunisherUUID() != null) {
-                dbo.append("punisherUUID", b.getPunisherUUID().toString());
-            }
-            dbo.append("reason", b.getReason());
-            dbo.append("dateIssued", b.getDateIssued());
-            dbo.append("isActive", b.isActive());
+            if (b.getPunisherUUID() != null)
+                doc.append("punisherUUID", b.getPunisherUUID().toString());
 
-            if (dbc.hasNext()) {
-                bCollection.update(dbc.next(), dbo);
-            } else {
-                bCollection.insert(dbo);
-            }
-        }
-    }
+            doc.append("reason", b.getReason());
+            doc.append("dateIssued", b.getDateIssued());
+            doc.append("isActive", b.isActive());
 
-    public boolean isIPBanned(UUID id) {
-        Profile prof = pm.getProfile(id);
-        for (IPBan b : ipBanList) {
-            if (b.getAddress().equalsIgnoreCase(prof.getCurrentIP())) {
-                if (b.isActive()) {
-                    return true;
+            bCollection.find(Filters.eq("address", b.getAddress())).first(new SingleResultCallback<Document>() {
+                @Override
+                public void onResult(Document document, Throwable throwable) {
+                    if (throwable != null) {
+                        throwable.printStackTrace();
+                    } else {
+                        if (document != null) {
+                            bCollection.replaceOne(Filters.eq("address", b.getAddress()), doc, new UpdateOptions().upsert(true), new SingleResultCallback<UpdateResult>() {
+                                @Override
+                                public void onResult(UpdateResult updateResult, Throwable t) {
+                                    if (t != null) {
+                                        t.printStackTrace();
+                                    }
+                                }
+                            });
+                        } else {
+                            bCollection.insertOne(doc, new SingleResultCallback<Void>() {
+                                @Override
+                                public void onResult(Void result, Throwable t) {
+                                    if (t != null) {
+                                        t.printStackTrace();
+                                    }
+                                }
+                            });
+                        }
+                    }
                 }
-            }
+            });
         }
-
-        return false;
     }
 
     public boolean isIPBanned(String address) {
@@ -296,19 +312,6 @@ public class PunishmentManager {
         }
 
         return false;
-    }
-
-    public IPBan getActiveIPBan(UUID id) {
-        Profile prof = pm.getProfile(id);
-        for (IPBan b : ipBanList) {
-            if (b.getAddress().equalsIgnoreCase(prof.getCurrentIP())) {
-                if (b.isActive()) {
-                    return b;
-                }
-            }
-        }
-
-        return null;
     }
 
     public IPBan getActiveIPBan(String address) {
@@ -324,75 +327,102 @@ public class PunishmentManager {
     }
 
     public void checkForValidAlts(UUID id) {
-        Profile prof = pm.getProfile(id);
+        Profile profile = pm.getProfile(id);
 
-        pm.getLoadedProfiles().stream().filter(profs -> profs.getIpList().contains(prof.getCurrentIP())).forEach(profs -> {
-            if (profs.getUniqueID() != prof.getUniqueID()) {
-                if (!profs.getAltList().contains(prof.getUniqueID())) {
-                    profs.getAltList().add(prof.getUniqueID());
+        pm.getLoadedProfiles().stream().filter(loadedProfile -> loadedProfile.getIpList().contains(profile.getCurrentIP())).forEach(loadedProfile -> {
+            if (loadedProfile.getUniqueID() != profile.getUniqueID()) {
+                if (!loadedProfile.getAltList().contains(profile.getUniqueID())) {
+                    loadedProfile.getAltList().add(profile.getUniqueID());
                 }
 
-                if (!prof.getAltList().contains(profs.getUniqueID())) {
-                    prof.getAltList().add(profs.getUniqueID());
+                if (!profile.getAltList().contains(loadedProfile.getUniqueID())) {
+                    profile.getAltList().add(loadedProfile.getUniqueID());
                 }
             }
         });
 
-        DBCursor dbc = pCollection.find();
+        pCollection.find().into(new ArrayList<>(), new SingleResultCallback<ArrayList<Document>>() {
+            @Override
+            public void onResult(ArrayList<Document> documents, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                } else {
+                    for (Document doc : documents) {
+                        pm.requestProfile(UUID.fromString(doc.getString("uniqueID")), new ProfileRequest<Profile>() {
+                            @Override
+                            public void onComplete(Profile result, Throwable throwable) {
+                                if (throwable != null) {
+                                    throwable.printStackTrace();
+                                } else {
+                                    if (result.getIpList().contains(profile.getCurrentIP())) {
+                                        if (!profile.getAltList().contains(result.getUniqueID())) {
+                                            if (result.getUniqueID() != profile.getUniqueID()) {
+                                                if (!result.getAltList().contains(profile.getUniqueID())) {
+                                                    result.getAltList().add(profile.getUniqueID());
+                                                    result.saveProfileData();
+                                                }
 
-        while (dbc.hasNext()) {
-            BasicDBObject dbo = (BasicDBObject) dbc.next();
-
-            Profile tprof = pm.getProfile(UUID.fromString(dbo.getString("uniqueID")));
-
-            if (tprof.getIpList().contains(prof.getCurrentIP())) {
-                if (!prof.getAltList().contains(tprof.getUniqueID())) {
-                    if (tprof.getUniqueID() != prof.getUniqueID()) {
-                        if (!tprof.getAltList().contains(prof.getUniqueID())) {
-                            tprof.getAltList().add(prof.getUniqueID());
-                            tprof.saveProfileData();
-                        }
-
-                        if (!prof.getAltList().contains(tprof.getUniqueID())) {
-                            prof.getAltList().add(tprof.getUniqueID());
-                        }
+                                                if (!profile.getAltList().contains(result.getUniqueID())) {
+                                                    profile.getAltList().add(result.getUniqueID());
+                                                    profile.saveProfileData();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             }
-        }
+        });
     }
 
     public void checkForBannedAlts(UUID id) {
-        List<String> associatedProfiles = new ArrayList<>();
+        HashSet<String> associatedProfiles = new HashSet<>();
 
-        Profile prof = pm.getProfile(id);
-        DBCursor dbc = pCollection.find();
+        Profile profile = pm.getProfile(id);
 
-        while (dbc.hasNext()) {
-            BasicDBObject dbo = (BasicDBObject) dbc.next();
+        pCollection.find().into(new ArrayList<>(), new SingleResultCallback<ArrayList<Document>>() {
+            @Override
+            public void onResult(ArrayList<Document> documents, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                } else {
+                    for (Document doc : documents) {
+                        pm.requestProfile(UUID.fromString(doc.getString("uniqueID")), new ProfileRequest<Profile>() {
+                            @Override
+                            public void onComplete(Profile result, Throwable throwable) {
+                                if (throwable != null) {
+                                    throwable.printStackTrace();
+                                } else {
+                                    boolean alert = false;
 
-            Profile tprof = pm.getProfile(UUID.fromString(dbo.getString("uniqueID")));
+                                    if (result.isBanned()) {
+                                        for (String taddress : result.getIpList()) {
+                                            if (profile.getIpList().contains(taddress) && !profile.getUniqueID().equals(result.getUniqueID())) {
+                                                alert = true;
+                                                associatedProfiles.add(result.getCurrentName());
+                                            }
+                                        }
 
-            boolean alert = false;
+                                        for (String address : profile.getIpList()) {
+                                            if (result.getIpList().contains(address) && !profile.getUniqueID().equals(result.getUniqueID())) {
+                                                alert = true;
+                                                associatedProfiles.add(result.getCurrentName());
+                                            }
+                                        }
+                                    }
 
-            if (tprof.isBanned()) {
-                for (String taddress : tprof.getIpList()) {
-                    if (prof.getIpList().contains(taddress)) {
-                        alert = true;
-                    }
-                }
-
-                for (String address : prof.getIpList()) {
-                    if (tprof.getIpList().contains(address)) {
-                        alert = true;
-                        associatedProfiles.add(tprof.getCurrentName());
+                                    if (alert)
+                                        MessageManager.broadcast("pure.alert", "&cAlert! &a" + profile.getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
+                                }
+                            }
+                        });
                     }
                 }
             }
-
-            if (alert)
-                MessageManager.broadcast("pure.alert", "&cAlert! &a" + prof.getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
-        }
+        });
     }
 
     public void addVanisher(Player p) {
@@ -417,10 +447,13 @@ public class PunishmentManager {
         MessageManager.sendMessage(p, "&aYou are now visible.");
     }
 
-    public void setChatSlowed(CommandSender sender) {
+    public void setChatSlowed(CommandSender sender, int chatSlowSeconds) {
         isChatSlowed = !isChatSlowed;
 
         MessageManager.broadcast("&c" + sender.getName() + " has " + (isChatSlowed ? "slowed" : "unslowed") + " the chat.");
+
+        if (isChatSlowed)
+            this.chatSlowSeconds = chatSlowSeconds;
     }
 
     public void setChatMuted(CommandSender sender) {
@@ -433,20 +466,6 @@ public class PunishmentManager {
         isServerFrozen = !isServerFrozen;
 
         MessageManager.broadcast("&c&lThe server has been " + (isServerFrozen ? "frozen" : "unfrozen"));
-
-        if (isServerFrozen) {
-            for (Player all : PlayerUtility.getOnlinePlayers()) {
-                if (!all.hasPermission("pure.freeze")) {
-                    all.setWalkSpeed(0.0F);
-                }
-            }
-        } else {
-            for (Player all : PlayerUtility.getOnlinePlayers()) {
-                if (!all.hasPermission("pure.freeze")) {
-                    all.setWalkSpeed(0.2F);
-                }
-            }
-        }
     }
 
     public boolean isVanished(Player p) {
@@ -471,5 +490,9 @@ public class PunishmentManager {
 
     public List<UUID> getFrozen() {
         return frozen;
+    }
+
+    public int getChatSlowSeconds() {
+        return chatSlowSeconds;
     }
 }
