@@ -1,5 +1,5 @@
-name: Pure
-main: com.breakmc.pure.Pure
+name: kPure
+main: com.mccritz.kpure.kPure
 version: 1.0
-depend: [ProtocolLib, PermissionsEx]
+depend: [ProtocolLib]
 author: Young
