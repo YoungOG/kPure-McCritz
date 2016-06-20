@@ -65,6 +65,8 @@ public class kPure extends JavaPlugin {
         profileManager.saveProfiles();
         punishmentManager.saveIPBans();
 
+        mongoClient.close();
+
         saveConfig();
     }
 
