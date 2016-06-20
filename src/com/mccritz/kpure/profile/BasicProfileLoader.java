@@ -15,6 +15,17 @@ public class BasicProfileLoader implements ProfileLoader {
     public BasicProfileLoader(String name, ProfileRequest<Profile> callback) {
         this.callback = callback;
 
+        Profile profile = null;
+
+//        new BukkitRunnable() {
+//            @Override
+//            public void run() {
+//                UUID id = UUID.fromString(UUIDFetcher.getUUID(name));
+//
+//                if (kPure.getInstance().getProfileManager().getp)
+//            }
+//        }.runTaskAsynchronously(kPure.getInstance());
+
         new Profile(name).loadProfileData(callback, true);
     }
 

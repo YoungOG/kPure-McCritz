@@ -25,8 +25,8 @@ public class CommandMute extends BaseCommand {
     private PunishmentManager pum = kPure.getInstance().getPunishmentManager();
 
     public CommandMute() {
-        super("mute", "pure.mute", CommandUsageBy.ANYONE);
-        setUsage("&cImproper usage! /mute (name) (time) (reason)");
+        super("mute", "kpure.mute", CommandUsageBy.ANYONE);
+        setUsage("&c/mute <name> <time> <reason>");
         setMinArgs(3);
         setMaxArgs(100);
     }

@@ -24,8 +24,8 @@ public class CommandPermMute extends BaseCommand {
     private PunishmentManager pum = kPure.getInstance().getPunishmentManager();
 
     public CommandPermMute() {
-        super("permmute", "pure.permmute", CommandUsageBy.ANYONE);
-        setUsage("&cImproper usage! /permmute (name) (reason)");
+        super("permmute", "kpure.permmute", CommandUsageBy.ANYONE);
+        setUsage("&c/permmute <name> <reason>");
         setMinArgs(2);
         setMaxArgs(100);
     }

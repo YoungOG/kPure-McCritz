@@ -4,7 +4,6 @@ import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.punishment.punishments.*;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
-import com.mccritz.kpure.utils.database.DatabaseManager;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -30,7 +29,7 @@ import java.util.stream.Collectors;
 
 public class Profile {
 
-    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
+    private MongoCollection<Document> pCollection = kPure.getInstance().getMongoDatabase().getCollection("profiles");
     private UUID uniqueID;
     private String currentName;
     private String currentIP;
@@ -57,7 +56,7 @@ public class Profile {
     }
 
     public void loadProfileData(@Nullable ProfileRequest<Profile> callback, boolean username) {
-        pCollection.find(Filters.eq((username ? "currentName" : "uniqueID"), (username ?  Pattern.compile("^" + currentName + "$", Pattern.CASE_INSENSITIVE) : uniqueID.toString()))).first((document, t) -> {
+        pCollection.find(Filters.eq((username ? "currentName" : "uniqueID"), (username ? Pattern.compile("^" + currentName + "$", Pattern.CASE_INSENSITIVE) : uniqueID.toString()))).first((document, t) -> {
             if (t != null) {
                 t.printStackTrace();
                 System.out.println("Failed to load " + (username ? currentName : uniqueID) + "'s profile.");
@@ -354,72 +353,72 @@ public class Profile {
     }
 
     public boolean hasPin() {
-        return pin != null && !pin.equalsIgnoreCase("");
+        return pin != null && !pin.isEmpty();
     }
 
     public void lookup(CommandSender sender) {
-        boolean hasElevatedPermission = sender.hasPermission("pure.lookup.admin");
+        boolean hasElevatedPermission = sender.hasPermission("kpure.lookup.admin");
 
-        MessageManager.sendMessage(sender, "&b&l" + getCurrentName() + (hasElevatedPermission ? " &7(&a" + getCurrentIP() + "&7)" : ""));
+        MessageManager.sendMessage(sender, "&c" + getCurrentName() + (hasElevatedPermission ? " &7(&c" + getCurrentIP() + "&7)" : ""));
         MessageManager.sendMessage(sender, "&7Online: " + (isOnline ? "&aTrue" : "&cFalse"));
-            MessageManager.sendMessage(sender, "&7Playtime: &a" + DateUtil.readableTime(getPlaytime() * 1000));
-            MessageManager.sendMessage(sender, "&7Rank: &a" + getGroup());
+        MessageManager.sendMessage(sender, "&7Playtime: &c" + DateUtil.readableTime(getPlaytime() * 1000));
+        MessageManager.sendMessage(sender, "&7Rank: &c" + getGroup());
 
-            if (hasElevatedPermission)
-                MessageManager.sendMessage(sender, "&7Past IPs(&a" + getIpList().size() + "&7): &a" + getIpList().toString().replace("[", "").replace("]", ""));
+        if (hasElevatedPermission)
+            MessageManager.sendMessage(sender, "&7Past IPs(&c" + getIpList().size() + "&7): &c" + getIpList().toString().replace("[", "").replace("]", ""));
 
-            MessageManager.sendMessage(sender, "&7Past Names&7(&a" + getNameList().size() + "&7): &a" + getNameList().toString().replace("[", "").replace("]", ""));
+        MessageManager.sendMessage(sender, "&7Past Names&7(&c" + getNameList().size() + "&7): &c" + getNameList().toString().replace("[", "").replace("]", ""));
 
-            if (getAltList().size() > 0) {
-                MessageManager.sendMessage(sender, "&7Known Alts&7(&a" + getAltList().size() + "&7): &a" + getKnownAltsNames().toString().replace("[", "").replace("]", ""));
+        if (getAltList().size() > 0) {
+            MessageManager.sendMessage(sender, "&7Known Alts&7(&c" + getAltList().size() + "&7): &c" + getKnownAltsNames().toString().replace("[", "").replace("]", ""));
 
-                if (getOnlineAlts().size() > 0) {
-                    MessageManager.sendMessage(sender, "&7Online Alts&7(&a" + getOnlineAlts().size() + "&7): &a" + getOnlineAltsNames().toString().replace("[", "").replace("]", ""));
-                }
+            if (getOnlineAlts().size() > 0) {
+                MessageManager.sendMessage(sender, "&7Online Alts&7(&c" + getOnlineAlts().size() + "&7): &c" + getOnlineAltsNames().toString().replace("[", "").replace("]", ""));
             }
+        }
 
-            MessageManager.sendMessage(sender, "&7Banned: &a" + isBanned());
-            if (isBanned()) {
+        MessageManager.sendMessage(sender, "&7Banned: &c" + isBanned());
+        if (isBanned()) {
             if (kPure.getInstance().getPunishmentManager().isIPBanned(getCurrentIP())) {
                 IPBan b = kPure.getInstance().getPunishmentManager().getActiveIPBan(getCurrentIP());
-                MessageManager.sendMessage(sender, "  &7Type: &aBlacklist");
-                MessageManager.sendMessage(sender, "  &7Reason: &a" + b.getReason());
-                MessageManager.sendMessage(sender, "  &7Date: &a" + b.getDateIssued());
-                MessageManager.sendMessage(sender, "  &7By: &a" + b.getPunisherName());
+                MessageManager.sendMessage(sender, "  &7Type: &cBlacklist");
+                MessageManager.sendMessage(sender, "  &7Reason: &c" + b.getReason());
+                MessageManager.sendMessage(sender, "  &7Date: &c" + b.getDateIssued());
+                MessageManager.sendMessage(sender, "  &7By: &c" + b.getPunisherName());
             }
             if (isPermanentlyBanned()) {
                 PermanentBan b = getActivePermanentBan();
-                MessageManager.sendMessage(sender, "  &7Type: &aPermanent");
-                MessageManager.sendMessage(sender, "  &7Reason: &a" + b.getReason());
-                MessageManager.sendMessage(sender, "  &7Date: &a" + b.getDateIssued());
-                MessageManager.sendMessage(sender, "  &7By: &a" + b.getPunisherName());
+                MessageManager.sendMessage(sender, "  &7Type: &cPermanent");
+                MessageManager.sendMessage(sender, "  &7Reason: &c" + b.getReason());
+                MessageManager.sendMessage(sender, "  &7Date: &c" + b.getDateIssued());
+                MessageManager.sendMessage(sender, "  &7By: &c" + b.getPunisherName());
             }
 
             if (isTemporarilyBanned()) {
                 TemporaryBan tb = getActiveTemporaryBan();
-                MessageManager.sendMessage(sender, "  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
-                MessageManager.sendMessage(sender, "  &7Reason: &a" + tb.getReason());
-                MessageManager.sendMessage(sender, "  &7Date: &a" + tb.getDateIssued());
-                MessageManager.sendMessage(sender, "  &7By: &a" + tb.getPunisherName());
+                MessageManager.sendMessage(sender, "  &7Type: &cTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
+                MessageManager.sendMessage(sender, "  &7Reason: &c" + tb.getReason());
+                MessageManager.sendMessage(sender, "  &7Date: &c" + tb.getDateIssued());
+                MessageManager.sendMessage(sender, "  &7By: &c" + tb.getPunisherName());
             }
         }
 
-        MessageManager.sendMessage(sender, "&7Muted: &a" + isMuted());
+        MessageManager.sendMessage(sender, "&7Muted: &c" + isMuted());
         if (isMuted()) {
             if (isPermanentlyMuted()) {
                 PermanentMute b = getActivePermanentMute();
-                MessageManager.sendMessage(sender, "  &7Type: &aPermanent");
-                MessageManager.sendMessage(sender, "  &7Reason: &a" + b.getReason());
-                MessageManager.sendMessage(sender, "  &7Date: &a" + b.getDateIssued());
-                MessageManager.sendMessage(sender, "  &7By: &a" + b.getPunisherName());
+                MessageManager.sendMessage(sender, "  &7Type: &cPermanent");
+                MessageManager.sendMessage(sender, "  &7Reason: &c" + b.getReason());
+                MessageManager.sendMessage(sender, "  &7Date: &c" + b.getDateIssued());
+                MessageManager.sendMessage(sender, "  &7By: &c" + b.getPunisherName());
             }
 
             if (isTemporarilyMuted()) {
                 TemporaryMute tb = getActiveTemporaryMute();
-                MessageManager.sendMessage(sender, "  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
-                MessageManager.sendMessage(sender, "  &7Reason: &a" + tb.getReason());
-                MessageManager.sendMessage(sender, "  &7Date: &a" + tb.getDateIssued());
-                MessageManager.sendMessage(sender, "  &7By: &a" + tb.getPunisherName());
+                MessageManager.sendMessage(sender, "  &7Type: &cTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
+                MessageManager.sendMessage(sender, "  &7Reason: &c" + tb.getReason());
+                MessageManager.sendMessage(sender, "  &7Date: &c" + tb.getDateIssued());
+                MessageManager.sendMessage(sender, "  &7By: &c" + tb.getPunisherName());
             }
         }
     }

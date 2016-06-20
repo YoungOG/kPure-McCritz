@@ -1,4 +1,4 @@
 database:
-  database: kpure
+  database-name: kpure
   host: localhost
   port: 27017

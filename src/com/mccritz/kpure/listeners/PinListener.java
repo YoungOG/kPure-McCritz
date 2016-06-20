@@ -6,6 +6,7 @@ import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.utils.MessageManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -20,37 +21,43 @@ public class PinListener implements Listener {
     ProfileManager pm = kPure.getInstance().getProfileManager();
     private HashSet<UUID> logged = new HashSet<>();
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
 
-        if (p.hasPermission("kpure.pin")) {
-            if (pm.hasLoadedProfile(p.getUniqueId())) {
-                Profile profile = pm.getProfile(p.getUniqueId());
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (p.hasPermission("kpure.pin")) {
 
-                if (!profile.hasPin()) {
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (!profile.hasPin()) {
-                                MessageManager.sendMessage(p, "&cPlease setup your four digit PIN. /setpin ####");
-                            }
-                        }
-                    }.runTaskTimerAsynchronously(kPure.getInstance(), 0L, 5 * 20);
-                } else {
-                    logged.add(p.getUniqueId());
+                    if (pm.hasLoadedProfile(p.getUniqueId())) {
+                        Profile profile = pm.getProfile(p.getUniqueId());
 
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (logged.contains(p.getUniqueId())) {
-                                MessageManager.sendMessage(p, "&7Please enter your PIN.");
-                            }
+                        if (!profile.hasPin()) {
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    if (!profile.hasPin()) {
+                                        MessageManager.sendMessage(p, "&cPlease setup your four digit PIN. /setpin ####");
+                                    }
+                                }
+                            }.runTaskTimerAsynchronously(kPure.getInstance(), 0L, 5 * 20);
+                        } else {
+                            logged.add(p.getUniqueId());
+
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    if (logged.contains(p.getUniqueId())) {
+                                        MessageManager.sendMessage(p, "&7Please enter your PIN.");
+                                    }
+                                }
+                            }.runTaskTimerAsynchronously(kPure.getInstance(), 5L, 5 * 20);
                         }
-                    }.runTaskTimerAsynchronously(kPure.getInstance(), 0L, 5 * 20);
+                    }
                 }
             }
-        }
+        }.runTaskLaterAsynchronously(kPure.getInstance(), 5L);
     }
 
     @EventHandler

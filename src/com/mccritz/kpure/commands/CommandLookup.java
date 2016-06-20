@@ -10,7 +10,6 @@ import com.mccritz.kpure.utils.MessageManager;
 import com.mccritz.kpure.utils.PlayerUtility;
 import com.mccritz.kpure.utils.command.BaseCommand;
 import com.mccritz.kpure.utils.command.CommandUsageBy;
-import com.mccritz.kpure.utils.database.DatabaseManager;
 import com.mongodb.async.SingleResultCallback;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,8 +25,8 @@ public class CommandLookup extends BaseCommand {
     private PunishmentManager pum = kPure.getInstance().getPunishmentManager();
 
     public CommandLookup() {
-        super("lookup", "pure.lookup", CommandUsageBy.ANYONE, "profile", "seen", "info");
-        setUsage("&cImproper Usage! /lookup (player/ip/info)");
+        super("lookup", "kpure.lookup", CommandUsageBy.ANYONE, "profile", "seen", "info", "checkban", "cb");
+        setUsage("&c/lookup <player/ip/info>");
         setMinArgs(1);
         setMaxArgs(1);
     }
@@ -36,7 +35,7 @@ public class CommandLookup extends BaseCommand {
     public void execute(CommandSender sender, String[] args) {
         if (args[0].equalsIgnoreCase("info")) {
             MessageManager.sendMessage(sender, "&aThere are currently &b" + pm.getLoadedProfiles().size() + " &aloaded profiles on this instance.");
-            DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles").count(new SingleResultCallback<Long>() {
+            kPure.getInstance().getMongoDatabase().getCollection("profiles").count(new SingleResultCallback<Long>() {
                 @Override
                 public void onResult(Long aLong, Throwable throwable) {
                     if (throwable != null) {

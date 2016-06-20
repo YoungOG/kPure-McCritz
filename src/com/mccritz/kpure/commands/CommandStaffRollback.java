@@ -15,16 +15,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CommandUnMute extends BaseCommand {
+public class CommandStaffRollback extends BaseCommand {
 
     private ProfileManager pm = kPure.getInstance().getProfileManager();
     private PunishmentManager pum = kPure.getInstance().getPunishmentManager();
 
-    public CommandUnMute() {
-        super("unmute", "kpure.unmute", CommandUsageBy.ANYONE);
-        setUsage("&c/unmute <player>");
-        setMinArgs(1);
-        setMaxArgs(1);
+    public CommandStaffRollback() {
+        super("staffrollback", "kpure.staffrollback", CommandUsageBy.ANYONE);
+        setUsage("&c/staffrollback <player> <time>");
+        setMinArgs(2);
+        setMaxArgs(100);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class CommandUnMute extends BaseCommand {
                 return;
             }
 
-            pum.unmute(sender, result);
+
         });
     }
 

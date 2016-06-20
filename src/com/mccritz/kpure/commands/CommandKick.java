@@ -1,12 +1,12 @@
 package com.mccritz.kpure.commands;
 
-import com.mccritz.kpure.kPure;
-import com.mccritz.kpure.profile.ProfileManager;
-import com.mccritz.kpure.punishment.PunishmentManager;
 import com.mccritz.kpure.utils.MessageManager;
 import com.mccritz.kpure.utils.PlayerUtility;
 import com.mccritz.kpure.utils.command.BaseCommand;
 import com.mccritz.kpure.utils.command.CommandUsageBy;
+import org.apache.commons.lang.StringUtils;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -15,34 +15,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CommandUnMute extends BaseCommand {
+public class CommandKick extends BaseCommand {
 
-    private ProfileManager pm = kPure.getInstance().getProfileManager();
-    private PunishmentManager pum = kPure.getInstance().getPunishmentManager();
-
-    public CommandUnMute() {
-        super("unmute", "kpure.unmute", CommandUsageBy.ANYONE);
-        setUsage("&c/unmute <player>");
-        setMinArgs(1);
-        setMaxArgs(1);
+    public CommandKick() {
+        super("kick", "kpure.kick", CommandUsageBy.ANYONE);
+        setUsage("&c/kick <player> <reason>");
+        setMinArgs(2);
+        setMaxArgs(100);
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        pm.requestProfile(args[0], (result, throwable) -> {
-            if (throwable != null) {
-                throwable.printStackTrace();
-                MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
-                return;
-            }
+        Player target = Bukkit.getPlayer(args[0]);
 
-            if (result == null) {
-                MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
-                return;
-            }
+        if (target == null) {
+            MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
+            return;
+        }
 
-            pum.unmute(sender, result);
-        });
+        MessageManager.broadcast("&c" + target.getPlayer().getName() + " &7has been kicked by &c" + sender.getName() + "&7.");
+        target.kickPlayer(ChatColor.RED + "You have been kicked by " + sender.getName() + " for " + StringUtils.join(args, " ", 1, args.length) + ".");
     }
 
     public List<String> tabComplete(String[] args, CommandSender sender) {

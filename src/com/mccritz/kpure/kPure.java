@@ -5,36 +5,39 @@ import com.mccritz.kpure.listeners.JoinListener;
 import com.mccritz.kpure.listeners.PinListener;
 import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.punishment.PunishmentManager;
-import com.mccritz.kpure.utils.Lag;
 import com.mccritz.kpure.utils.PlayerUtility;
 import com.mccritz.kpure.utils.command.Register;
-import com.mccritz.kpure.utils.database.DatabaseManager;
-import net.milkbowl.vault.permission.Permission;
+import com.mongodb.MongoException;
+import com.mongodb.async.client.MongoClient;
+import com.mongodb.async.client.MongoClients;
+import com.mongodb.async.client.MongoDatabase;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.logging.Level;
 
 public class kPure extends JavaPlugin {
 
     private static kPure instance;
+    private MongoClient mongoClient;
+    private MongoDatabase mongoDatabase;
     private ProfileManager profileManager;
     private PunishmentManager punishmentManager;
-    private Permission permissions;
 
     public void onEnable() {
         instance = this;
 
-        saveDefaultConfig();
-        DatabaseManager.getInstance().connect();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
 
-        setupPermissions();
+        setupMongoConnection();
 
         profileManager = new ProfileManager();
         punishmentManager = new PunishmentManager();
 
         registerCommands();
         registerListeners();
-        registerChecks();
 
         for (Player p : PlayerUtility.getOnlinePlayers()) {
             profileManager.requestProfile(p.getUniqueId(), (result, throwable) -> {
@@ -52,7 +55,7 @@ public class kPure extends JavaPlugin {
 
                 result.setOnline(p.isOnline());
                 result.setLogins(result.getLogins() + 1);
-                result.setGroup(permissions.getPrimaryGroup(p));
+                result.setGroup("disabled");
                 result.saveProfileData();
             });
         }
@@ -62,8 +65,6 @@ public class kPure extends JavaPlugin {
         profileManager.saveProfiles();
         punishmentManager.saveIPBans();
 
-        DatabaseManager.getInstance().getMongoClient().close();
-
         saveConfig();
     }
 
@@ -72,6 +73,7 @@ public class kPure extends JavaPlugin {
 
         try {
             register.registerCommand("lookup", new CommandLookup());
+            register.registerCommand("kick", new CommandKick());
             register.registerCommand("ban", new CommandBan());
             register.registerCommand("tempban", new CommandTempBan());
             register.registerCommand("banip", new CommandBanIP());
@@ -84,6 +86,7 @@ public class kPure extends JavaPlugin {
             register.registerCommand("kickall", new CommandKickAll());
             register.registerCommand("clearmobs", new CommandClearMobs());
             register.registerCommand("clearitems", new CommandClearItems());
+            register.registerCommand("gamemodeclear", new CommandGMClear());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -93,21 +96,29 @@ public class kPure extends JavaPlugin {
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         getServer().getPluginManager().registerEvents(new JoinListener(), this);
-        getServer().getPluginManager().registerEvents(new FreezeListener(), this);
-        getServer().getPluginManager().registerEvents(new ChatListener(), this);
-        getServer().getPluginManager().registerEvents(new VanishListener(), this);
         getServer().getPluginManager().registerEvents(new PinListener(), this);
-        getServer().getPluginManager().registerEvents(new AntiSpamBotListener(), this);
     }
 
-    private boolean setupPermissions() {
-        RegisteredServiceProvider<Permission> rsp = getServer().getServicesManager().getRegistration(Permission.class);
-        permissions = rsp.getProvider();
-        return permissions != null;
+    public void setupMongoConnection() {
+        try {
+            mongoClient = MongoClients.create("mongodb://" + getConfig().getString("database.host"));
+
+            getLogger().log(Level.INFO, "Successfully connected to the MongoDB server.");
+
+            mongoDatabase = mongoClient.getDatabase(getConfig().getString("database.database-name"));
+        } catch (MongoException e) {
+            e.printStackTrace();
+            getLogger().log(Level.WARNING, "Failed to connect to the MongoDB server, disabling!");
+            Bukkit.getPluginManager().disablePlugin(this);
+        }
     }
 
-    public void registerChecks() {
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, new Lag(), 100L, 1L);
+    public MongoClient getMongoClient() {
+        return mongoClient;
+    }
+
+    public MongoDatabase getMongoDatabase() {
+        return mongoDatabase;
     }
 
     public static kPure getInstance() {
@@ -120,9 +131,5 @@ public class kPure extends JavaPlugin {
 
     public PunishmentManager getPunishmentManager() {
         return punishmentManager;
-    }
-
-    public Permission getPermissions() {
-        return permissions;
     }
 }

@@ -11,8 +11,8 @@ import org.bukkit.entity.Player;
 public class CommandKickAll extends BaseCommand {
 
     public CommandKickAll() {
-        super("kickall", "pure.kickall", CommandUsageBy.ANYONE);
-        setUsage("&cImproper Usage! /kickall");
+        super("kickall", "kpure.kickall", CommandUsageBy.ANYONE);
+        setUsage("&c/kickall");
         setMinArgs(0);
         setMaxArgs(0);
     }
@@ -24,15 +24,15 @@ public class CommandKickAll extends BaseCommand {
 
             for (Player all : PlayerUtility.getOnlinePlayers()) {
                 if (all.getUniqueId() != p.getUniqueId()) {
-                    all.kickPlayer(ChatColor.RED + "All players have been kicked from the server.\nYou may rejoin at BreakMC.com");
+                    all.kickPlayer(ChatColor.RED + "All players have been kicked from the server.");
                 }
             }
         } else {
             for (Player all : PlayerUtility.getOnlinePlayers()) {
-                all.kickPlayer(ChatColor.RED + "All players have been kicked from the server.\nYou may rejoin at BreakMC.com");
+                all.kickPlayer(ChatColor.RED + "All players have been kicked from the server.");
             }
         }
 
-        MessageManager.sendMessage(sender, "&aAll players have been kicked.");
+        MessageManager.sendMessage(sender, "&7All users have been kicked.");
     }
 }

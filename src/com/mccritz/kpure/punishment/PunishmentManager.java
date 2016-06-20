@@ -8,7 +8,6 @@ import com.mccritz.kpure.punishment.punishments.*;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
 import com.mccritz.kpure.utils.PlayerUtility;
-import com.mccritz.kpure.utils.database.DatabaseManager;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -25,9 +24,10 @@ import java.util.*;
 
 public class PunishmentManager {
 
+    private kPure main = kPure.getInstance();
     private ProfileManager pm = kPure.getInstance().getProfileManager();
-    private MongoCollection<Document> bCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("ipbans");
-    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
+    private MongoCollection<Document> bCollection = main.getMongoDatabase().getCollection("ipbans");
+    private MongoCollection<Document> pCollection = main.getMongoDatabase().getCollection("profiles");
     private final List<IPBan> ipBanList = new ArrayList<>();
 
     public PunishmentManager() {
@@ -51,7 +51,7 @@ public class PunishmentManager {
             public void run() {
                 saveIPBans();
             }
-        }.runTaskTimer(kPure.getInstance(), 0L, 300*20);
+        }.runTaskTimer(kPure.getInstance(), 0L, 300 * 20);
     }
 
     public void permanentlyBan(CommandSender sender, Profile profile, String reason) {
@@ -59,7 +59,7 @@ public class PunishmentManager {
 
         if (profile != null) {
             if (profile.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already banned.");
+                MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is already banned.");
                 return;
             }
 
@@ -67,10 +67,10 @@ public class PunishmentManager {
             profile.saveProfileData();
 
             if (Bukkit.getPlayer(profile.getUniqueID()) != null) {
-                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been permanently banned.\n\nYou can appeal your ban on our website " + ChatColor.AQUA + "www.BreakMC.com");
+                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been banned from McCritZ.\nYou can purchase an unban at store.mccritz.com");
             }
 
-            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been permanently banned by " + sender.getName() + ".");
+            MessageManager.broadcast("&c" + profile.getCurrentName() + " &7has been banned by &c" + sender.getName() + "&7.");
         }
     }
 
@@ -79,7 +79,7 @@ public class PunishmentManager {
 
         if (profile != null) {
             if (profile.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already banned.");
+                MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is already banned.");
                 return;
             }
 
@@ -87,16 +87,16 @@ public class PunishmentManager {
             profile.saveProfileData();
 
             if (Bukkit.getPlayer(profile.getUniqueID()) != null) {
-                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been temporarily banned.\n" + DateUtil.formatDateDiff(profile.getActiveTemporaryBan().getLength()) + " remaining.\n\nYou can not appeal a temporary ban.");
+                Bukkit.getPlayer(profile.getUniqueID()).kickPlayer(ChatColor.RED + "You have been temporarily banned from McCritZ.\nThis ban expires in " + DateUtil.formatDateDiff(length) + "\nYou can purchase an unban at store.mccritz.com");
             }
 
-            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been temporarily banned by " + sender.getName() + ".");
+            MessageManager.broadcast("&c" + profile.getCurrentName() + " &7has been temporarily banned by &c" + sender.getName() + "&7.");
         }
     }
 
     public void banIP(CommandSender sender, String address, String reason) {
         if (isIPBanned(address)) {
-            MessageManager.sendMessage(sender, "&cIP \"" + address + "\" is already banned.");
+            MessageManager.sendMessage(sender, "&c" + address + " &7is already banned.");
             return;
         }
 
@@ -106,11 +106,11 @@ public class PunishmentManager {
 
         for (Player all : PlayerUtility.getOnlinePlayers()) {
             if (all.getAddress().getAddress().getHostAddress().replace("[", "").replace("]", "").equalsIgnoreCase(address)) {
-                all.kickPlayer(ChatColor.RED + "You are blacklisted.\n\nThis punishment " + ChatColor.RED + "" + ChatColor.BOLD + "cannot" + ChatColor.RED + " be appealed.");
+                all.kickPlayer(ChatColor.RED + "You have been blacklisted from McCritZ.\nYou cannot purchase an unban.");
             }
         }
 
-        MessageManager.broadcast("pure.banip", "&a" + address + " has been blacklisted by " + sender.getName() + ".");
+        MessageManager.broadcast("kpure.banip", "&c" + address + " &7has been blacklisted by &c" + sender.getName() + "&7.");
     }
 
     public void permanentlyMute(CommandSender sender, Profile profile, String reason) {
@@ -118,7 +118,7 @@ public class PunishmentManager {
 
         if (profile != null) {
             if (profile.isBanned()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already muted.");
+                MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is already muted.");
                 return;
             }
 
@@ -129,7 +129,7 @@ public class PunishmentManager {
                 MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been permanently muted.");
             }
 
-            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been muted by " + sender.getName() + ".");
+            MessageManager.broadcast("&c" + profile.getCurrentName() + " &7has been muted by &c" + sender.getName() + "&7.");
         }
     }
 
@@ -138,7 +138,7 @@ public class PunishmentManager {
 
         if (profile != null) {
             if (profile.isMuted()) {
-                MessageManager.sendMessage(sender, "&cPlayer \"" + profile.getCurrentName() + "\" is already muted.");
+                MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is already muted.");
                 return;
             }
 
@@ -149,7 +149,7 @@ public class PunishmentManager {
                 MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
             }
 
-            MessageManager.broadcast("&a" + profile.getCurrentName() + " has been muted by " + sender.getName() + " for " + DateUtil.formatDateDiff(length) + ".");
+            MessageManager.broadcast("&c" + profile.getCurrentName() + " &7has been muted by &c" + sender.getName() + "&7.");
         }
     }
 
@@ -169,16 +169,16 @@ public class PunishmentManager {
                 profile.saveProfileData();
             }
         } else {
-            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " is not banned.");
+            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is not banned.");
             return;
         }
 
-        MessageManager.broadcast("&a" + profile.getCurrentName() + " has been unbanned by " + sender.getName() + ".");
+        MessageManager.broadcast("&c" + profile.getCurrentName() + " &7has been unbanned by &c" + sender.getName() + "&7.");
     }
 
     public void unban(CommandSender sender, String address) {
         if (!isIPBanned(address)) {
-            MessageManager.sendMessage(sender, "&cIP \"" + address + "\" is not banned.");
+            MessageManager.sendMessage(sender, "&c" + address + " &7is not banned.");
             return;
         }
 
@@ -186,7 +186,7 @@ public class PunishmentManager {
             getActiveIPBan(address).setActive(false);
         }
 
-        MessageManager.broadcast("pure.unban", "&a" + address + " has been unbanned by " + sender.getName() + ".");
+        MessageManager.broadcast("kpure.unban", "&c" + address + " &7has been unbanned by &c" + sender.getName() + "&7.");
     }
 
     public void unmute(CommandSender sender, Profile profile) {
@@ -201,11 +201,11 @@ public class PunishmentManager {
                 profile.saveProfileData();
             }
         } else {
-            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " is not muted.");
+            MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is not muted.");
             return;
         }
 
-        MessageManager.broadcast("pure.unban", "&a" + profile.getCurrentName() + " has been unmuted by " + sender.getName() + ".");
+        MessageManager.broadcast("kpure.unban", "&c" + profile.getCurrentName() + " &7has been unmuted by &c" + sender.getName() + "&7.");
     }
 
     public void saveIPBans() {
@@ -350,20 +350,55 @@ public class PunishmentManager {
                                         for (String taddress : result.getIpList()) {
                                             if (profile.getIpList().contains(taddress) && !profile.getUniqueID().equals(result.getUniqueID())) {
                                                 alert = true;
-                                                associatedProfiles.add(result.getCurrentName());
+                                                associatedProfiles.add("&c" + result.getCurrentName());
                                             }
                                         }
 
                                         for (String address : profile.getIpList()) {
                                             if (result.getIpList().contains(address) && !profile.getUniqueID().equals(result.getUniqueID())) {
                                                 alert = true;
-                                                associatedProfiles.add(result.getCurrentName());
+                                                associatedProfiles.add("&c" + result.getCurrentName());
                                             }
                                         }
                                     }
 
-                                    if (alert)
-                                        MessageManager.broadcast("pure.alert", "&cAlert! &a" + profile.getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
+                                    if (alert) {
+//                                        MessageManager.broadcast("pure.alert", "&cAlert! &a" + profile.getCurrentName() + "&7's IP is associated with the banned account(s) &a" + associatedProfiles.toString().replace("&7(", "").replace("&7)", ""));
+                                        MessageManager.broadcast("kpure.alert", "&7Searching database for alts associated with &c" + profile.getCurrentName() + "&7(&c" + associatedProfiles.size() + "&7).");
+                                        MessageManager.broadcast("kpure.alert", "" + associatedProfiles.toString().replace("[", "").replace("]", ""));
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    public void staffRollback(UUID id, long length) {
+        pCollection.find().into(new ArrayList<>(), new SingleResultCallback<ArrayList<Document>>() {
+            @Override
+            public void onResult(ArrayList<Document> documents, Throwable throwable) {
+                if (throwable != null) {
+                    throwable.printStackTrace();
+                } else {
+                    for (Document doc : documents) {
+                        pm.requestProfile(UUID.fromString(doc.getString("uniqueID")), new ProfileRequest<Profile>() {
+                            @Override
+                            public void onComplete(Profile result, Throwable throwable) {
+                                if (throwable != null) {
+                                    throwable.printStackTrace();
+                                } else {
+                                    if (result.isBanned()) {
+                                        if (result.isPermanentlyBanned()) {
+//                                            if (result.getActivePermanentBan().getPunisherUUID().equals(id) && result.getD) {
+//
+//                                            }
+                                        }
+                                    } else if (result.isMuted()) {
+
+                                    }
                                 }
                             }
                         });

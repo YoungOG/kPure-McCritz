@@ -4,7 +4,6 @@ import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.punishment.punishments.*;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
-import com.mccritz.kpure.utils.database.DatabaseManager;
 import com.mongodb.async.client.MongoCollection;
 import mkremins.fanciful.FancyMessage;
 import org.bson.Document;
@@ -25,7 +24,7 @@ public class ProfileManager {
 
     private kPure main = kPure.getInstance();
     private List<Profile> loadedProfiles = new ArrayList<>();
-    private MongoCollection<Document> pCollection = DatabaseManager.getInstance().getMongoDatabase().getCollection("profiles");
+    private MongoCollection<Document> pCollection = main.getMongoDatabase().getCollection("profiles");
 
     public ProfileManager() {
         new BukkitRunnable() {
@@ -89,7 +88,7 @@ public class ProfileManager {
         prof.setCurrentIP(ip);
         prof.setCurrentName(p.getName());
         prof.setDateCreated(DateUtil.getProperDate(new Date()));
-        prof.setGroup(main.getPermissions().getPrimaryGroup(p));
+        prof.setGroup("disabled");
         prof.setOnline(p.isOnline());
         prof.setPlaytime(0);
         prof.setLogins(1);
@@ -104,6 +103,27 @@ public class ProfileManager {
 
         kPure.getInstance().getPunishmentManager().checkForValidAlts(prof.getUniqueID());
         kPure.getInstance().getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
+    }
+
+    public void createSimpleProfile(UUID id, String name) {
+        Profile profile = new Profile(id);
+        profile.setCurrentName(name);
+        profile.setCurrentIP("0.0.0.0");
+        profile.setDateCreated(DateUtil.getProperDate(new Date()));
+        profile.setGroup("none");
+        profile.setOnline(false);
+        profile.setPlaytime(0);
+        profile.setLogins(0);
+        profile.setPin("");
+        profile.getNameList().add(name);
+        profile.saveProfileData();
+
+        getLoadedProfiles().add(profile);
+
+        Bukkit.getLogger().log(Level.INFO, "Performing check for " + profile.getCurrentName() + ".");
+
+        kPure.getInstance().getPunishmentManager().checkForValidAlts(id);
+        kPure.getInstance().getPunishmentManager().checkForBannedAlts(id);
     }
 
     public void lookup(CommandSender sender, String address) {
