@@ -34,14 +34,14 @@ public class CommandLookup extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args[0].equalsIgnoreCase("info")) {
-            MessageManager.sendMessage(sender, "&aThere are currently &b" + pm.getLoadedProfiles().size() + " &aloaded profiles on this instance.");
+            MessageManager.sendMessage(sender, "&7There are &c" + pm.getLoadedProfiles().size() + " &7loaded profiles on this instance.");
             kPure.getInstance().getMongoDatabase().getCollection("profiles").count(new SingleResultCallback<Long>() {
                 @Override
                 public void onResult(Long aLong, Throwable throwable) {
                     if (throwable != null) {
                         throwable.printStackTrace();
                     } else {
-                        MessageManager.sendMessage(sender, "&aThere are a total of &b" + aLong + " &aprofiles on the network.");
+                        MessageManager.sendMessage(sender, "&7There are of &c" + aLong + " &7profiles on the network.");
                     }
                 }
             });
@@ -64,8 +64,8 @@ public class CommandLookup extends BaseCommand {
                 }
             });
         } else {
-            if (!sender.hasPermission("pure.lookup.admin")) {
-                MessageManager.sendMessage(sender, "&cYou do not have permission to lookup IP Addresses.");
+            if (!sender.hasPermission("kpure.lookup.admin")) {
+                MessageManager.sendMessage(sender, "&cYou need higher permissions to view IP.");
                 return;
             }
 
