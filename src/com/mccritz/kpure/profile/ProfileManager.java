@@ -3,7 +3,6 @@ package com.mccritz.kpure.profile;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -22,7 +21,6 @@ import com.mccritz.kpure.punishment.punishments.TemporaryBan;
 import com.mccritz.kpure.punishment.punishments.TemporaryMute;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
-import com.mccritz.kpure.utils.UUIDFetcher;
 
 import mkremins.fanciful.FancyMessage;
 
@@ -74,11 +72,6 @@ public class ProfileManager {
 	if (profile != null)
 	    return new BasicProfileLoader(profile, callback);
 
-	Entry<UUID, String> info = UUIDFetcher.getInformation(name);
-
-	if (info != null) {
-	    this.createSimpleProfile(info.getKey(), info.getValue());
-	}
 	return new BasicProfileLoader(name, callback);
     }
 

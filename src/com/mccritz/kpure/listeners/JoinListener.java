@@ -71,11 +71,11 @@ public class JoinListener implements Listener {
 			return;
 		    }
 
-		    System.out.println("Creating " + p.getName() + "'s profile!");
-		    pm.createProfile(p, e.getAddress().getHostAddress().replace("/", ""));
+//		    System.out.println("Creating " + p.getName() + "'s profile!");
+//		    pm.createProfile(p, e.getAddress().getHostAddress().replace("/", ""));
 		} else if (result.isBanned()) {
 		    e.disallow(PlayerLoginEvent.Result.KICK_BANNED, ChatColor.RED
-			    + "Your account has been blacklisted from McCritZ.\nYou cannot purchase an unban while blacklisted.");
+			    + "You have been banned from McCritZ.\nYou can purchase an unban at store.mccritz.com");
 		} else {
 		    result.setCurrentName(p.getName());
 		    result.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));

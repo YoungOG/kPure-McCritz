@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.google.gson.Gson;
 import com.mccritz.kpure.commands.CommandBan;
 import com.mccritz.kpure.commands.CommandBanIP;
 import com.mccritz.kpure.commands.CommandClearItems;
@@ -25,6 +26,7 @@ import com.mccritz.kpure.commands.CommandUnMute;
 import com.mccritz.kpure.commands.CommandUnban;
 import com.mccritz.kpure.listeners.JoinListener;
 import com.mccritz.kpure.listeners.PinListener;
+import com.mccritz.kpure.listeners.UUIDVerifierListener;
 import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.punishment.PunishmentManager;
 import com.mccritz.kpure.utils.PlayerUtility;
@@ -45,6 +47,7 @@ public class kPure extends JavaPlugin {
     private ProfileManager profileManager;
     private PunishmentManager punishmentManager;
 
+    public static final Gson GSON = new Gson();
     public static final ExecutorService SERVICE = Executors.newCachedThreadPool();
 
     @Override
@@ -124,6 +127,7 @@ public class kPure extends JavaPlugin {
 
 	getServer().getPluginManager().registerEvents(new JoinListener(), this);
 	getServer().getPluginManager().registerEvents(new PinListener(), this);
+	getServer().getPluginManager().registerEvents(new UUIDVerifierListener(), this);
     }
 
     public void setupMongoConnection() {
