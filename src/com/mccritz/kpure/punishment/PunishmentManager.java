@@ -3,7 +3,6 @@ package com.mccritz.kpure.punishment;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.UUID;
 
 import org.bson.Document;
@@ -11,7 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.profile.Profile;
@@ -35,25 +33,29 @@ public class PunishmentManager {
     private ProfileManager pm = kPure.getInstance().getProfileManager();
     private MongoCollection<Document> bCollection = main.getMongoDatabase().getCollection("ipbans");
     private MongoCollection<Document> pCollection = main.getMongoDatabase().getCollection("profiles");
-    private final List<IPBan> ipBanList = new ArrayList<>();
+    // private final List<IPBan> ipBanList = new ArrayList<>();
 
     public PunishmentManager() {
-	ArrayList<Document> documents = bCollection.find().into(new ArrayList<>());
-
-	for (Document doc : documents) {
-	    this.ipBanList.add(new IPBan(doc.getString("address"),
-		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
-		    doc.getString("reason"), doc.getString("dateIssued"), doc.getBoolean("isActive")));
-	}
-
-	System.out.println("Loaded " + ipBanList.size() + " ip-bans into the blacklist.");
-
-	new BukkitRunnable() {
-	    @Override
-	    public void run() {
-		saveIPBans();
-	    }
-	}.runTaskTimer(kPure.getInstance(), 0L, 300 * 20);
+	// ArrayList<Document> documents = bCollection.find().into(new
+	// ArrayList<>());
+	//
+	// for (Document doc : documents) {
+	// this.ipBanList.add(new IPBan(doc.getString("address"),
+	// doc.getString("punisherUUID") != null ?
+	// UUID.fromString(doc.getString("punisherUUID")) : null,
+	// doc.getString("reason"), doc.getString("dateIssued"),
+	// doc.getBoolean("isActive")));
+	// }
+	//
+	// System.out.println("Loaded " + ipBanList.size() + " ip-bans into the
+	// blacklist.");
+	//
+	// new BukkitRunnable() {
+	// @Override
+	// public void run() {
+	// saveIPBans();
+	// }
+	// }.runTaskTimer(kPure.getInstance(), 0L, 300 * 20);
     }
 
     public void permanentlyBan(CommandSender sender, Profile profile, String reason) {
@@ -112,7 +114,10 @@ public class PunishmentManager {
 
 	UUID punisher = sender instanceof Player ? ((Player) sender).getUniqueId() : null;
 
-	ipBanList.add(new IPBan(address, punisher, reason, DateUtil.getProperDate(new Date()), true));
+	// ipBanList.add(new IPBan(address, punisher, reason,
+	// DateUtil.getProperDate(new Date()), true));
+	IPBan b = new IPBan(address, punisher, reason, DateUtil.getProperDate(new Date()), true);
+	this.saveIPBan(b);
 
 	for (Player all : PlayerUtility.getOnlinePlayers()) {
 	    if (all.getAddress().getAddress().getHostAddress().replace("[", "").replace("]", "")
@@ -172,27 +177,45 @@ public class PunishmentManager {
     }
 
     public void unban(CommandSender sender, Profile profile) {
+	boolean unbanned = false;
+
 	if (isIPBanned(profile.getCurrentIP())) {
-	    if (getActiveIPBan(profile.getCurrentIP()) != null) {
-		getActiveIPBan(profile.getCurrentIP()).setActive(false);
+	    IPBan b = this.getActiveIPBan(profile.getCurrentIP());
+
+	    if (b != null) {
+		b.setActive(false);
+		this.saveIPBan(b);
+		unbanned = true;
 	    }
-	} else if (profile.isPermanentlyBanned()) {
-	    if (profile.getActivePermanentBan() != null) {
-		profile.getActivePermanentBan().setActive(false);
+	}
+
+	if (profile.isPermanentlyBanned()) {
+	    PermanentBan b = profile.getActivePermanentBan();
+
+	    if (b != null) {
+		b.setActive(false);
 		profile.saveProfileData();
+		unbanned = true;
 	    }
-	} else if (profile.isTemporarilyBanned()) {
-	    if (profile.getActiveTemporaryBan() != null) {
-		profile.getActiveTemporaryBan().setLength(0);
+	}
+
+	if (profile.isTemporarilyBanned()) {
+	    TemporaryBan b = profile.getActiveTemporaryBan();
+
+	    if (b != null) {
+		b.setLength(0);
 		profile.saveProfileData();
+		unbanned = true;
 	    }
+	}
+
+	if (unbanned) {
+	    MessageManager.broadcast(
+		    "&c" + profile.getCurrentName() + " &7has been unbanned by &c" + sender.getName() + "&7.");
 	} else {
 	    MessageManager.sendMessage(sender, "&c" + profile.getCurrentName() + " &7is not banned.");
 	    return;
 	}
-
-	MessageManager
-		.broadcast("&c" + profile.getCurrentName() + " &7has been unbanned by &c" + sender.getName() + "&7.");
     }
 
     public void unban(CommandSender sender, String address) {
@@ -201,8 +224,11 @@ public class PunishmentManager {
 	    return;
 	}
 
-	if (getActiveIPBan(address) != null) {
-	    getActiveIPBan(address).setActive(false);
+	IPBan b = this.getActiveIPBan(address);
+
+	if (b != null) {
+	    b.setActive(false);
+	    this.saveIPBan(b);
 	}
 
 	MessageManager.broadcast("kpure.unban",
@@ -229,45 +255,80 @@ public class PunishmentManager {
 		"&c" + profile.getCurrentName() + " &7has been unmuted by &c" + sender.getName() + "&7.");
     }
 
-    public void saveIPBans() {
-	for (IPBan b : ipBanList) {
-	    Document doc = new Document("address", b.getAddress());
+    // public void saveIPBans() {
+    // for (IPBan b : ipBanList) {
+    // Document doc = new Document("address", b.getAddress());
+    //
+    // if (b.getPunisherUUID() != null) {
+    // doc.append("punisherUUID", b.getPunisherUUID().toString());
+    // }
+    //
+    // doc.append("reason", b.getReason());
+    // doc.append("dateIssued", b.getDateIssued());
+    // doc.append("isActive", b.isActive());
+    //
+    // Document document = bCollection.find(Filters.eq("address",
+    // b.getAddress())).first();
+    //
+    // if (document != null) {
+    // bCollection.replaceOne(Filters.eq("address", b.getAddress()), doc, new
+    // UpdateOptions().upsert(true));
+    // } else {
+    // bCollection.insertOne(doc);
+    // }
+    // }
+    // }
 
-	    if (b.getPunisherUUID() != null) {
-		doc.append("punisherUUID", b.getPunisherUUID().toString());
-	    }
+    public void saveIPBan(IPBan b) {
+	Document doc = new Document("address", b.getAddress());
 
-	    doc.append("reason", b.getReason());
-	    doc.append("dateIssued", b.getDateIssued());
-	    doc.append("isActive", b.isActive());
+	if (b.getPunisherUUID() != null) {
+	    doc.append("punisherUUID", b.getPunisherUUID().toString());
+	}
 
-	    Document document = bCollection.find(Filters.eq("address", b.getAddress())).first();
+	doc.append("reason", b.getReason());
+	doc.append("dateIssued", b.getDateIssued());
+	doc.append("isActive", b.isActive());
 
-	    if (document != null) {
-		bCollection.replaceOne(Filters.eq("address", b.getAddress()), doc, new UpdateOptions().upsert(true));
-	    } else {
-		bCollection.insertOne(doc);
-	    }
+	Document document = bCollection.find(Filters.eq("address", b.getAddress())).first();
+
+	if (document != null) {
+	    bCollection.replaceOne(Filters.eq("address", b.getAddress()), doc, new UpdateOptions().upsert(true));
+	} else {
+	    bCollection.insertOne(doc);
 	}
     }
 
     public boolean isIPBanned(String address) {
-	for (IPBan b : ipBanList) {
-	    if (b.getAddress().equalsIgnoreCase(address)) {
-		if (b.isActive())
-		    return true;
-	    }
-	}
+	// for (IPBan b : ipBanList) {
+	// if (b.getAddress().equalsIgnoreCase(address)) {
+	// if (b.isActive())
+	// return true;
+	// }
+	// }
+
+	IPBan b = this.getActiveIPBan(address);
+
+	if (b != null)
+	    return b.isActive();
 
 	return false;
     }
 
     public IPBan getActiveIPBan(String address) {
-	for (IPBan b : ipBanList) {
-	    if (b.getAddress().equalsIgnoreCase(address)) {
-		if (b.isActive())
-		    return b;
-	    }
+	// for (IPBan b : ipBanList) {
+	// if (b.getAddress().equalsIgnoreCase(address)) {
+	// if (b.isActive())
+	// return b;
+	// }
+	// }
+
+	Document doc = bCollection.find(Filters.eq("address", address)).first();
+
+	if (doc != null) {
+	    return new IPBan(doc.getString("address"),
+		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
+		    doc.getString("reason"), doc.getString("dateIssued"), doc.getBoolean("isActive"));
 	}
 
 	return null;

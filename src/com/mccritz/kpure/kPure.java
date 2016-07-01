@@ -12,7 +12,6 @@ import com.google.gson.Gson;
 import com.mccritz.kpure.commands.CommandBan;
 import com.mccritz.kpure.commands.CommandBanIP;
 import com.mccritz.kpure.commands.CommandClearItems;
-import com.mccritz.kpure.commands.CommandClearMobs;
 import com.mccritz.kpure.commands.CommandGMClear;
 import com.mccritz.kpure.commands.CommandKick;
 import com.mccritz.kpure.commands.CommandKickAll;
@@ -89,7 +88,7 @@ public class kPure extends JavaPlugin {
     @Override
     public void onDisable() {
 	profileManager.saveProfiles();
-	punishmentManager.saveIPBans();
+//	punishmentManager.saveIPBans();
 
 	mongoClient.close();
 
@@ -114,7 +113,6 @@ public class kPure extends JavaPlugin {
 	    register.registerCommand("setpin", new CommandSetPin());
 	    register.registerCommand("deletepin", new CommandResetPin());
 	    register.registerCommand("kickall", new CommandKickAll());
-	    register.registerCommand("clearmobs", new CommandClearMobs());
 	    register.registerCommand("clearitems", new CommandClearItems());
 	    register.registerCommand("gamemodeclear", new CommandGMClear());
 	} catch (Exception e) {
