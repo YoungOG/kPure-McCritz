@@ -151,11 +151,10 @@ public class ProfileManager {
 	    foundProfiles.add(profile);
 	}
 
-	// if (foundProfiles.size() <= 0) {
-	// MessageManager.sendMessage(sender,
-	// "&cCould not find any accounts associated with the IP \"" + address +
-	// "\"");
-	// }
+	if (foundProfiles.size() <= 0) {
+	    MessageManager.sendMessage(sender,
+		    "&cCould not find any accounts associated with the IP \"" + address + "\"");
+	}
 
 	MessageManager.sendMessage(sender,
 		"&7Found (&a" + foundProfiles.size() + "&7) accounts associated with the IP (&a" + address + "&7):");

@@ -1,5 +1,6 @@
 package com.mccritz.kpure.listeners;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -18,71 +19,63 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.profile.Profile;
-import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.utils.MessageManager;
 
 public class PinListener implements Listener {
 
-    ProfileManager pm = kPure.getInstance().getProfileManager();
+    private HashMap<UUID, Profile> cached = new HashMap<>();
     private HashSet<UUID> logged = new HashSet<>();
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onJoin(PlayerJoinEvent e) {
 	Player p = e.getPlayer();
-	
+
 	new BukkitRunnable() {
-	    @Override
 	    public void run() {
 		if (p.hasPermission("kpure.pin")) {
+		    Profile profile = kPure.getInstance().getProfileManager().getProfile(p.getUniqueId());
+		    cached.put(p.getUniqueId(), profile);
 
-		    if (pm.hasLoadedProfile(p.getUniqueId())) {
-			Profile profile = pm.getProfile(p.getUniqueId());
+		    if (!profile.hasPin()) {
+			new BukkitRunnable() {
 
-			if (!profile.hasPin()) {
-			    new BukkitRunnable() {
-				@Override
-				public void run() {
-				    if (!profile.hasPin()) {
-					MessageManager.sendMessage(p,
-						"&cPlease setup your four digit PIN. /setpin ####");
-				    }
-				    else this.cancel();
-				}
-			    }.runTaskTimerAsynchronously(kPure.getInstance(), 0L, 5 * 20);
-			} else {
-			    logged.add(p.getUniqueId());
+			    public void run() {
+				if (!profile.hasPin()) {
+				    MessageManager.sendMessage(p, "&cPlease setup your four digit PIN. /setpin ####");
+				} else
+				    this.cancel();
+			    }
 
-			    new BukkitRunnable() {
-				@Override
-				public void run() {
-				    if (logged.contains(p.getUniqueId())) {
-					MessageManager.sendMessage(p, "&7Please enter your PIN.");
-				    }
-				    else this.cancel();
-				}
-			    }.runTaskTimerAsynchronously(kPure.getInstance(), 5L, 5 * 20);
-			}
+			}.runTaskTimer(kPure.getInstance(), 0, 5 * 20);
+		    } else {
+			logged.add(p.getUniqueId());
+
+			new BukkitRunnable() {
+
+			    public void run() {
+				if (logged.contains(p.getUniqueId())) {
+				    MessageManager.sendMessage(p, "&7Please enter your PIN.");
+				} else
+				    this.cancel();
+			    }
+
+			}.runTaskTimer(kPure.getInstance(), 5, 5 * 20);
 		    }
 		}
 	    }
-	}.runTaskLaterAsynchronously(kPure.getInstance(), 5L);
+	}.runTaskLater(kPure.getInstance(), 5);
     }
-
+    
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    if (pm.hasLoadedProfile(p.getUniqueId())) {
-		Profile profile = pm.getProfile(p.getUniqueId());
-
-		if (!profile.hasPin()) {
-		    e.setTo(e.getFrom());
-		}
-
-		if (logged.contains(p.getUniqueId())) {
-		    e.setTo(e.getFrom());
-		}
+	    Profile profile = this.cached.get(p.getUniqueId());
+	    
+	    if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
+	    {
+		e.setTo(e.getFrom());
 	    }
 	}
     }
@@ -92,16 +85,11 @@ public class PinListener implements Listener {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    if (pm.hasLoadedProfile(p.getUniqueId())) {
-		Profile profile = pm.getProfile(p.getUniqueId());
-
-		if (!profile.hasPin()) {
-		    e.setCancelled(true);
-		}
-
-		if (logged.contains(p.getUniqueId())) {
-		    e.setCancelled(true);
-		}
+	    Profile profile = this.cached.get(p.getUniqueId());
+	    
+	    if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
+	    {
+		e.setCancelled(true);
 	    }
 	}
     }
@@ -113,16 +101,11 @@ public class PinListener implements Listener {
 	    Player p = (Player) e.getEntity();
 
 	    if (p.hasPermission("kpure.pin")) {
-		if (pm.hasLoadedProfile(p.getUniqueId())) {
-		    Profile profile = pm.getProfile(p.getUniqueId());
-
-		    if (!profile.hasPin()) {
-			e.setCancelled(true);
-		    }
-
-		    if (logged.contains(p.getUniqueId())) {
-			e.setCancelled(true);
-		    }
+		Profile profile = this.cached.get(p.getUniqueId());
+		
+		if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
+		{
+		    e.setCancelled(true);
 		}
 	    }
 	}
@@ -134,16 +117,11 @@ public class PinListener implements Listener {
 	    Player p = (Player) e.getEntity();
 
 	    if (p.hasPermission("kpure.pin")) {
-		if (pm.hasLoadedProfile(p.getUniqueId())) {
-		    Profile profile = pm.getProfile(p.getUniqueId());
-
-		    if (!profile.hasPin()) {
-			e.setCancelled(true);
-		    }
-
-		    if (logged.contains(p.getUniqueId())) {
-			e.setCancelled(true);
-		    }
+		Profile profile = this.cached.get(p.getUniqueId());
+		
+		if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
+		{
+		    e.setCancelled(true);
 		}
 	    }
 	}
@@ -154,9 +132,9 @@ public class PinListener implements Listener {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    if (pm.hasLoadedProfile(p.getUniqueId())) {
-		Profile profile = pm.getProfile(p.getUniqueId());
-
+	    Profile profile = this.cached.get(p.getUniqueId());
+	    
+	    if (profile != null) {
 		if (!profile.hasPin()) {
 		    e.setCancelled(true);
 		    MessageManager.sendMessage(p, "&7You cannot chat until you entered your PIN.");
@@ -175,6 +153,7 @@ public class PinListener implements Listener {
 			return;
 		    }
 
+		    cached.remove(p.getUniqueId());
 		    logged.remove(p.getUniqueId());
 		    MessageManager.sendMessage(p, "&7You have been successfully authenticated.");
 		}
@@ -188,9 +167,9 @@ public class PinListener implements Listener {
 
 	if (p.hasPermission("kpure.pin")) {
 	    if (!e.getMessage().toLowerCase().contains("/setpin")) {
-		if (pm.hasLoadedProfile(p.getUniqueId())) {
-		    Profile profile = pm.getProfile(p.getUniqueId());
-
+		Profile profile = this.cached.get(p.getUniqueId());
+		
+		if (profile != null) {
 		    if (!profile.hasPin()) {
 			e.setCancelled(true);
 			MessageManager.sendMessage(p, "&7You cannot use commands until you have entered your PIN.");

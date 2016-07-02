@@ -25,7 +25,6 @@ import com.mccritz.kpure.commands.CommandUnMute;
 import com.mccritz.kpure.commands.CommandUnban;
 import com.mccritz.kpure.listeners.JoinListener;
 import com.mccritz.kpure.listeners.PinListener;
-import com.mccritz.kpure.listeners.UUIDVerifierListener;
 import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.punishment.PunishmentManager;
 import com.mccritz.kpure.utils.PlayerUtility;
@@ -125,7 +124,7 @@ public class kPure extends JavaPlugin {
 
 	getServer().getPluginManager().registerEvents(new JoinListener(), this);
 	getServer().getPluginManager().registerEvents(new PinListener(), this);
-	getServer().getPluginManager().registerEvents(new UUIDVerifierListener(), this);
+//	getServer().getPluginManager().registerEvents(new UUIDVerifierListener(), this);
     }
 
     public void setupMongoConnection() {
