@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.bukkit.Bukkit;
@@ -32,11 +31,13 @@ public class UUIDVerifierListener implements Listener {
 
 	new BukkitRunnable() {
 
+	    @Override
 	    public void run() {
 		final NameHistory history = getProfileNameHistory(uuid);
 
 		new BukkitRunnable() {
 
+		    @Override
 		    public void run() {
 			if (history == null || history.isEmpty()
 				|| !history.get(history.size() - 1).getName().equals(name)) {
@@ -56,7 +57,7 @@ public class UUIDVerifierListener implements Listener {
 	final CloseableHttpClient client = HttpClients.createDefault();
 	final HttpGet method = new HttpGet(
 		"https://api.mojang.com/user/profiles/" + uuid.toString().replace("-", "") + "/names");
-	try (final CloseableHttpResponse response = client.execute((HttpUriRequest) method)) {
+	try (final CloseableHttpResponse response = client.execute(method)) {
 	    switch (response.getStatusLine().getStatusCode()) {
 	    case 200:
 		try (final Reader reader = new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)) {
@@ -70,7 +71,7 @@ public class UUIDVerifierListener implements Listener {
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
-	
+
 	return null;
     }
 

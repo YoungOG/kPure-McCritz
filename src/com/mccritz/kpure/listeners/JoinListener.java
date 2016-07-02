@@ -10,7 +10,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 
 import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.profile.Profile;
@@ -39,9 +38,9 @@ public class JoinListener implements Listener {
 	    } else {
 		if (result != null) {
 		    System.out.println("Loading " + p.getName() + "'s profile!");
-		    pm.loadProfile(result, true);
+		    // pm.loadProfile(result, true);
 
-		    result.setOnline(p.isOnline());
+		    // result.setOnline(p.isOnline());
 		    result.setLogins(result.getLogins() + 1);
 		    result.setGroup("disabled");
 		    result.saveProfileData();
@@ -71,8 +70,10 @@ public class JoinListener implements Listener {
 			return;
 		    }
 
-//		    System.out.println("Creating " + p.getName() + "'s profile!");
-//		    pm.createProfile(p, e.getAddress().getHostAddress().replace("/", ""));
+		    // System.out.println("Creating " + p.getName() + "'s
+		    // profile!");
+		    // pm.createProfile(p,
+		    // e.getAddress().getHostAddress().replace("/", ""));
 		} else if (result.isBanned()) {
 		    e.disallow(PlayerLoginEvent.Result.KICK_BANNED, ChatColor.RED
 			    + "You have been banned from McCritZ.\nYou can purchase an unban at store.mccritz.com");
@@ -85,19 +86,19 @@ public class JoinListener implements Listener {
 	}
     }
 
-    @EventHandler
-    public void onQuit(PlayerQuitEvent e) {
-	Player p = e.getPlayer();
-
-	Profile prof = pm.getProfile(p.getUniqueId());
-
-	if (prof != null) {
-	    prof.setOnline(false);
-	    prof.saveProfileData();
-	}
-
-	pm.getLoadedProfiles().remove(prof);
-    }
+    // @EventHandler
+    // public void onQuit(PlayerQuitEvent e) {
+    // Player p = e.getPlayer();
+    //
+    // Profile prof = pm.getProfile(p.getUniqueId());
+    //
+    // if (prof != null) {
+    // prof.setOnline(false);
+    // prof.saveProfileData();
+    // }
+    //
+    // pm.getLoadedProfiles().remove(prof);
+    // }
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {

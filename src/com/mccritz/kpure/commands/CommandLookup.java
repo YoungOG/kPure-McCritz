@@ -32,8 +32,9 @@ public class CommandLookup extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
 	if (args[0].equalsIgnoreCase("info")) {
-	    MessageManager.sendMessage(sender, "&aThere are currently &b" + pm.getLoadedProfiles().size()
-		    + " &aloaded profiles on this instance.");
+	    // MessageManager.sendMessage(sender, "&aThere are currently &b" +
+	    // pm.getLoadedProfiles().size()
+	    // + " &aloaded profiles on this instance.");
 	    long aLong = kPure.getInstance().getMongoDatabase().getCollection("profiles").count();
 	    MessageManager.sendMessage(sender, "&aThere are a total of &b" + aLong + " &aprofiles on the network.");
 	} else if (!IPUtils.isValidIP(args[0])) {

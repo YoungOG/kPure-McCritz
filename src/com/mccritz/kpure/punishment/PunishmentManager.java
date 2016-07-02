@@ -144,9 +144,12 @@ public class PunishmentManager {
 		    .add(new PermanentMute(punisher, reason, DateUtil.getProperDate(new Date()), true));
 	    profile.saveProfileData();
 
-	    if (profile.isOnline()) {
-		MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been permanently muted.");
-	    }
+	    // if (profile.isOnline()) {
+	    // MessageManager.sendMessage(profile.getUniqueID(), "&cYou have
+	    // been permanently muted.");
+	    // }
+
+	    MessageManager.sendMessage(profile.getUniqueID(), "&cYou have been permanently muted.");
 
 	    MessageManager
 		    .broadcast("&c" + profile.getCurrentName() + " &7has been muted by &c" + sender.getName() + "&7.");
@@ -166,10 +169,14 @@ public class PunishmentManager {
 		    .add(new TemporaryMute(punisher, length, reason, DateUtil.getProperDate(new Date())));
 	    profile.saveProfileData();
 
-	    if (profile.isOnline()) {
-		MessageManager.sendMessage(profile.getUniqueID(),
-			"&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
-	    }
+	    // if (profile.isOnline()) {
+	    // MessageManager.sendMessage(profile.getUniqueID(),
+	    // "&cYou have been temporarily muted for " +
+	    // DateUtil.formatDateDiff(length) + ".");
+	    // }
+
+	    MessageManager.sendMessage(profile.getUniqueID(),
+		    "&cYou have been temporarily muted for " + DateUtil.formatDateDiff(length) + ".");
 
 	    MessageManager
 		    .broadcast("&c" + profile.getCurrentName() + " &7has been muted by &c" + sender.getName() + "&7.");
@@ -325,11 +332,10 @@ public class PunishmentManager {
 
 	Document doc = bCollection.find(Filters.eq("address", address)).first();
 
-	if (doc != null) {
+	if (doc != null)
 	    return new IPBan(doc.getString("address"),
 		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
 		    doc.getString("reason"), doc.getString("dateIssued"), doc.getBoolean("isActive"));
-	}
 
 	return null;
     }
@@ -337,19 +343,20 @@ public class PunishmentManager {
     public void checkForValidAlts(UUID id) {
 	Profile profile = pm.getProfile(id);
 
-	pm.getLoadedProfiles().stream()
-		.filter(loadedProfile -> loadedProfile.getIpList().contains(profile.getCurrentIP()))
-		.forEach(loadedProfile -> {
-		    if (loadedProfile.getUniqueID() != profile.getUniqueID()) {
-			if (!loadedProfile.getAltList().contains(profile.getUniqueID())) {
-			    loadedProfile.getAltList().add(profile.getUniqueID());
-			}
-
-			if (!profile.getAltList().contains(loadedProfile.getUniqueID())) {
-			    profile.getAltList().add(loadedProfile.getUniqueID());
-			}
-		    }
-		});
+	// pm.getLoadedProfiles().stream()
+	// .filter(loadedProfile ->
+	// loadedProfile.getIpList().contains(profile.getCurrentIP()))
+	// .forEach(loadedProfile -> {
+	// if (loadedProfile.getUniqueID() != profile.getUniqueID()) {
+	// if (!loadedProfile.getAltList().contains(profile.getUniqueID())) {
+	// loadedProfile.getAltList().add(profile.getUniqueID());
+	// }
+	//
+	// if (!profile.getAltList().contains(loadedProfile.getUniqueID())) {
+	// profile.getAltList().add(loadedProfile.getUniqueID());
+	// }
+	// }
+	// });
 
 	ArrayList<Document> documents = pCollection.find().into(new ArrayList<>());
 

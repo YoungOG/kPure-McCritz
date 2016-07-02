@@ -75,9 +75,9 @@ public class kPure extends JavaPlugin {
 		    return;
 
 		System.out.println("Loading " + p.getName() + "'s profile!");
-		profileManager.loadProfile(result, true);
+		// profileManager.loadProfile(result, true);
 
-		result.setOnline(p.isOnline());
+		// result.setOnline(p.isOnline());
 		result.setLogins(result.getLogins() + 1);
 		result.setGroup("disabled");
 		result.saveProfileData();
@@ -87,8 +87,8 @@ public class kPure extends JavaPlugin {
 
     @Override
     public void onDisable() {
-	profileManager.saveProfiles();
-//	punishmentManager.saveIPBans();
+	// profileManager.saveProfiles();
+	// punishmentManager.saveIPBans();
 
 	mongoClient.close();
 

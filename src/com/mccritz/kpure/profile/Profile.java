@@ -38,7 +38,7 @@ public class Profile {
     private String currentIP;
     private String dateCreated;
     private String group;
-    private boolean isOnline;
+    // private boolean isOnline;
     private long playtime;
     private int logins;
     private String pin;
@@ -130,7 +130,7 @@ public class Profile {
 	    setCurrentIP(document.getString("currentIP"));
 	    setDateCreated(document.getString("dateCreated"));
 	    setGroup(document.getString("group"));
-	    setOnline(document.getBoolean("isOnline"));
+	    // setOnline(document.getBoolean("isOnline"));
 	    setPlaytime(document.getLong("playtime"));
 	    setLogins(document.getInteger("logins"));
 	    setPin(document.getString("pin"));
@@ -161,7 +161,7 @@ public class Profile {
 	doc.append("currentIP", currentIP);
 	doc.append("dateCreated", dateCreated);
 	doc.append("group", group);
-	doc.append("isOnline", isOnline);
+	// doc.append("isOnline", isOnline);
 	doc.append("playtime", playtime);
 	doc.append("logins", logins);
 	doc.append("pin", pin);
@@ -349,7 +349,10 @@ public class Profile {
 
 	MessageManager.sendMessage(sender,
 		"&c" + getCurrentName() + (hasElevatedPermission ? " &7(&c" + getCurrentIP() + "&7)" : ""));
-	MessageManager.sendMessage(sender, "&7Online: " + (isOnline ? "&aTrue" : "&cFalse"));
+	// MessageManager.sendMessage(sender, "&7Online: " + (isOnline ?
+	// "&aTrue" : "&cFalse"));
+	MessageManager.sendMessage(sender,
+		"&7Online: " + (Bukkit.getPlayer(this.uniqueID) != null ? "&aTrue" : "&cFalse"));
 	MessageManager.sendMessage(sender, "&7Playtime: &c" + DateUtil.readableTime(getPlaytime() * 1000));
 	MessageManager.sendMessage(sender, "&7Rank: &c" + getGroup());
 

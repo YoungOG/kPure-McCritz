@@ -29,7 +29,7 @@ public class PinListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onJoin(PlayerJoinEvent e) {
 	Player p = e.getPlayer();
-
+	
 	new BukkitRunnable() {
 	    @Override
 	    public void run() {
@@ -46,6 +46,7 @@ public class PinListener implements Listener {
 					MessageManager.sendMessage(p,
 						"&cPlease setup your four digit PIN. /setpin ####");
 				    }
+				    else this.cancel();
 				}
 			    }.runTaskTimerAsynchronously(kPure.getInstance(), 0L, 5 * 20);
 			} else {
@@ -57,6 +58,7 @@ public class PinListener implements Listener {
 				    if (logged.contains(p.getUniqueId())) {
 					MessageManager.sendMessage(p, "&7Please enter your PIN.");
 				    }
+				    else this.cancel();
 				}
 			    }.runTaskTimerAsynchronously(kPure.getInstance(), 5L, 5 * 20);
 			}

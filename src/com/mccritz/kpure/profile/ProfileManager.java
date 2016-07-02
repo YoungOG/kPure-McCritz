@@ -7,11 +7,11 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.punishment.punishments.IPBan;
@@ -21,50 +21,56 @@ import com.mccritz.kpure.punishment.punishments.TemporaryBan;
 import com.mccritz.kpure.punishment.punishments.TemporaryMute;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 
 import mkremins.fanciful.FancyMessage;
 
 public class ProfileManager {
 
     private kPure main = kPure.getInstance();
-    private List<Profile> loadedProfiles = new ArrayList<>();
+    private MongoCollection pCollection = main.getMongoDatabase().getCollection("profiles");
+    // private List<Profile> loadedProfiles = new ArrayList<>();
 
     public ProfileManager() {
-	new BukkitRunnable() {
-	    @Override
-	    public void run() {
-		getLoadedProfiles().stream().filter(Profile::isOnline)
-			.forEach(prof -> prof.setPlaytime(prof.getPlaytime() + 1));
-	    }
-	}.runTaskTimerAsynchronously(main, 0L, 20);
+	// new BukkitRunnable() {
+	// @Override
+	// public void run() {
+	// getLoadedProfiles().stream().filter(Profile::isOnline)
+	// .forEach(prof -> prof.setPlaytime(prof.getPlaytime() + 1));
+	// }
+	// }.runTaskTimerAsynchronously(main, 0L, 20);
     }
 
-    public void saveProfiles() {
-	main.getLogger().log(Level.INFO, "Saving " + getLoadedProfiles().size() + " profiles.");
+    // public void saveProfiles() {
+    // main.getLogger().log(Level.INFO, "Saving " + getLoadedProfiles().size() +
+    // " profiles.");
+    //
+    // int count = 0;
+    //
+    // for (Profile prof : getLoadedProfiles()) {
+    // count++;
+    // prof.setOnline(false);
+    // prof.saveProfileData();
+    // }
+    //
+    // getLoadedProfiles().clear();
+    //
+    // main.getLogger().log(Level.INFO, "Saved " + count + " profiles.");
+    // }
 
-	int count = 0;
-
-	for (Profile prof : getLoadedProfiles()) {
-	    count++;
-	    prof.setOnline(false);
-	    prof.saveProfileData();
-	}
-
-	getLoadedProfiles().clear();
-
-	main.getLogger().log(Level.INFO, "Saved " + count + " profiles.");
-    }
-
-    public void loadProfile(Profile profile, boolean check) {
-	getLoadedProfiles().add(profile);
-
-	if (check) {
-	    Bukkit.getLogger().log(Level.INFO, "Performing check for " + profile.getCurrentName() + ".");
-
-	    kPure.getInstance().getPunishmentManager().checkForValidAlts(profile.getUniqueID());
-	    kPure.getInstance().getPunishmentManager().checkForBannedAlts(profile.getUniqueID());
-	}
-    }
+    // public void loadProfile(Profile profile, boolean check) {
+    // getLoadedProfiles().add(profile);
+    //
+    // if (check) {
+    // Bukkit.getLogger().log(Level.INFO, "Performing check for " +
+    // profile.getCurrentName() + ".");
+    //
+    // kPure.getInstance().getPunishmentManager().checkForValidAlts(profile.getUniqueID());
+    // kPure.getInstance().getPunishmentManager().checkForBannedAlts(profile.getUniqueID());
+    // }
+    // }
 
     public ProfileLoader requestProfile(String name, ProfileRequest<Profile> callback) {
 	Profile profile = getProfile(name);
@@ -91,7 +97,7 @@ public class ProfileManager {
 	prof.setCurrentName(p.getName());
 	prof.setDateCreated(DateUtil.getProperDate(new Date()));
 	prof.setGroup("disabled");
-	prof.setOnline(p.isOnline());
+	// prof.setOnline(p.isOnline());
 	prof.setPlaytime(0);
 	prof.setLogins(1);
 	prof.setPin("");
@@ -99,7 +105,7 @@ public class ProfileManager {
 	prof.getNameList().add(prof.getCurrentName());
 	prof.saveProfileData();
 
-	getLoadedProfiles().add(prof);
+	// getLoadedProfiles().add(prof);
 
 	Bukkit.getLogger().log(Level.INFO, "Performing check for " + prof.getCurrentName() + ".");
 
@@ -107,36 +113,49 @@ public class ProfileManager {
 	kPure.getInstance().getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
     }
 
-    public void createSimpleProfile(UUID id, String name) {
+    public Profile createSimpleProfile(UUID id, String name) {
 	Profile profile = new Profile(id);
 	profile.setCurrentName(name);
 	profile.setCurrentIP("0.0.0.0");
 	profile.setDateCreated(DateUtil.getProperDate(new Date()));
 	profile.setGroup("none");
-	profile.setOnline(false);
+	// profile.setOnline(false);
 	profile.setPlaytime(0);
 	profile.setLogins(0);
 	profile.setPin("");
 	profile.getNameList().add(name);
 	profile.saveProfileData();
 
-	getLoadedProfiles().add(profile);
+	// getLoadedProfiles().add(profile);
 
 	Bukkit.getLogger().log(Level.INFO, "Performing check for " + profile.getCurrentName() + ".");
 
 	kPure.getInstance().getPunishmentManager().checkForValidAlts(id);
 	kPure.getInstance().getPunishmentManager().checkForBannedAlts(id);
+	return profile;
     }
 
     public void lookup(CommandSender sender, String address) {
-	List<Profile> foundProfiles = loadedProfiles.stream()
-		.filter(prof -> prof.getIpList().contains(address) || prof.getCurrentIP().equalsIgnoreCase(address))
-		.collect(Collectors.toList());
+	// List<Profile> foundProfiles = loadedProfiles.stream()
+	// .filter(prof -> prof.getIpList().contains(address) ||
+	// prof.getCurrentIP().equalsIgnoreCase(address))
+	// .collect(Collectors.toList());
 
-	if (foundProfiles.size() <= 0) {
-	    MessageManager.sendMessage(sender,
-		    "&cCould not find any accounts associated with the IP \"" + address + "\"");
+	FindIterable<Document> foundDocuments = pCollection.find(Filters.eq("currentIP", address));
+	List<Profile> foundProfiles = new ArrayList<>();
+
+	for (Document doc : foundDocuments) {
+	    Profile profile = new Profile(UUID.fromString(doc.getString("uniqueID")));
+	    profile.loadProfileData(null, false);
+
+	    foundProfiles.add(profile);
 	}
+
+	// if (foundProfiles.size() <= 0) {
+	// MessageManager.sendMessage(sender,
+	// "&cCould not find any accounts associated with the IP \"" + address +
+	// "\"");
+	// }
 
 	MessageManager.sendMessage(sender,
 		"&7Found (&a" + foundProfiles.size() + "&7) accounts associated with the IP (&a" + address + "&7):");
@@ -152,41 +171,68 @@ public class ProfileManager {
     }
 
     public boolean hasLoadedProfile(UUID id) {
-	for (Profile prof : getLoadedProfiles()) {
-	    if (prof.getUniqueID().equals(id))
-		return true;
-	}
+	// for (Profile prof : getLoadedProfiles()) {
+	// if (prof.getUniqueID().equals(id))
+	// return true;
+	// }
 
-	return false;
+	// return false;
+
+	return pCollection.find(Filters.eq("uniqueID", id.toString())).first() != null;
     }
 
     public Profile getProfile(UUID id) {
-	for (Profile prof : getLoadedProfiles()) {
-	    if (prof.getUniqueID().equals(id))
-		return prof;
+	// for (Profile prof : getLoadedProfiles()) {
+	// if (prof.getUniqueID().equals(id))
+	// return prof;
+	// }
+	//
+	// return null;
+
+	FindIterable<Document> it = pCollection.find(Filters.eq("uniqueID", id.toString()));
+	Document document = it.first();
+
+	if (document != null) {
+	    Profile profile = new Profile(UUID.fromString(document.getString("uniqueID")));
+	    profile.loadProfileData(null, false);
+
+	    return profile;
 	}
 
 	return null;
     }
 
     public Profile getProfile(String name) {
-	for (Profile prof : getLoadedProfiles()) {
-	    if (prof.getCurrentName().equalsIgnoreCase(name))
-		return prof;
+	// for (Profile prof : getLoadedProfiles()) {
+	// if (prof.getCurrentName().equalsIgnoreCase(name))
+	// return prof;
+	// }
+	//
+	// return null;
+
+	FindIterable<Document> it = pCollection.find(Filters.eq("currentName", name));
+	Document document = it.first();
+
+	if (document != null) {
+	    Profile profile = new Profile(name);
+	    profile.loadProfileData(null, true);
+
+	    return profile;
 	}
 
 	return null;
     }
 
-    public List<Profile> getLoadedProfiles() {
-	return loadedProfiles;
-    }
+    // public List<Profile> getLoadedProfiles() {
+    // return loadedProfiles;
+    // }
 
     public List<String> getProfileInformation(Profile prof) {
 	List<String> lines = new ArrayList<>();
 
 	lines.add("&b&l" + prof.getCurrentName() + " &7(&a" + prof.getCurrentIP() + "&7)");
-	lines.add("&7Online: " + (prof.isOnline() ? "&aTrue" : "&cFalse"));
+	// lines.add("&7Online: " + (prof.isOnline() ? "&aTrue" : "&cFalse"));
+	lines.add("&7Online: " + (Bukkit.getPlayer(prof.getUniqueID()) != null ? "&aTrue" : "&cFalse"));
 	lines.add("&7Playtime: &a" + DateUtil.readableTime(prof.getPlaytime() * 1000));
 	lines.add("&7Rank: &a" + prof.getGroup());
 	lines.add("&7Past IPs(&a" + prof.getIpList().size() + "&7): &a"
