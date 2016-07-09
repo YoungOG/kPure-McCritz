@@ -1,5 +1,7 @@
 package com.mccritz.kpure.commands;
 
+import java.util.Collection;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -22,15 +24,15 @@ public class CommandClearItems extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
 	for (World w : Bukkit.getWorlds()) {
-	    MessageManager
-		    .sendMessage(sender,
-			    "&7World "
-				    + (w.getEnvironment() == World.Environment.NORMAL ? "&a" + w.getName()
-					    : "&c" + w.getName())
-				    + " &7removed &c" + w.getEntitiesByClass(Item.class).size() + " &7items");
+	    Collection<Item> entities = w.getEntitiesByClass(Item.class);
 
-	    for (Entity ent : w.getEntitiesByClass(Item.class)) {
-		ent.remove();
+	    MessageManager.sendMessage(sender,
+		    "&7World "
+			    + (w.getEnvironment() == World.Environment.NORMAL ? "&a" + w.getName() : "&c" + w.getName())
+			    + " &7removed &c" + entities.size() + " &7items");
+
+	    for (Entity e : entities) {
+		e.remove();
 	    }
 	}
     }

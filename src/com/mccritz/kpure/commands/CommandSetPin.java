@@ -15,7 +15,7 @@ public class CommandSetPin extends BaseCommand {
     private ProfileManager pm = kPure.getInstance().getProfileManager();
 
     public CommandSetPin() {
-	super("setpin", "kpure.setpin", CommandUsageBy.ANYONE);
+	super("setpin", "kpure.setpin", CommandUsageBy.PlAYER);
 	setUsage("&c/setpin <pin>");
 	setMinArgs(1);
 	setMaxArgs(1);
@@ -24,15 +24,15 @@ public class CommandSetPin extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
 	Player p = (Player) sender;
-	Profile profile = pm.getProfile(p.getUniqueId());
+	Profile result = pm.getProfile(p.getUniqueId());
 
 	if (!isFourDigitCode(args[0])) {
 	    MessageManager.sendMessage(sender, "&7Your PIN must be &c4 &7numeric digits.");
 	    return;
 	}
 
-	profile.setPin(args[0]);
-	profile.saveProfileData();
+	result.setPin(args[0]);
+	pm.saveProfile(result);
 
 	MessageManager.sendMessage(p, "&7Your PIN has been set to &c" + args[0] + "&7.");
     }

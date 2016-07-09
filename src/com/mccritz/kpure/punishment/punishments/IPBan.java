@@ -9,15 +9,10 @@ import lombok.Getter;
 @Getter
 public class IPBan extends Punishment {
 
-    protected String address;
+    private String address;
 
     public IPBan(String address, UUID punisherUUID, String reason, String dateIssued, boolean active) {
-	super();
-
+	super(punisherUUID, reason, dateIssued, active);
 	this.address = address;
-	this.punisherUUID = punisherUUID;
-	this.reason = reason;
-	this.dateIssued = dateIssued;
-	this.active = active;
     }
 }

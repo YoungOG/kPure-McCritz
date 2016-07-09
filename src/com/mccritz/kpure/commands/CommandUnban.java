@@ -3,6 +3,7 @@ package com.mccritz.kpure.commands;
 import org.bukkit.command.CommandSender;
 
 import com.mccritz.kpure.kPure;
+import com.mccritz.kpure.profile.Profile;
 import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.punishment.PunishmentManager;
 import com.mccritz.kpure.utils.IPUtils;
@@ -25,20 +26,14 @@ public class CommandUnban extends BaseCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
 	if (!IPUtils.isValidIP(args[0])) {
-	    pm.requestProfile(args[0], (result, throwable) -> {
-		if (throwable != null) {
-		    throwable.printStackTrace();
-		    MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
-		    return;
-		}
+	    Profile result = pm.getProfile(args[0]);
 
-		if (result == null) {
-		    MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
-		    return;
-		}
+	    if (result == null) {
+		MessageManager.sendMessage(sender, MessageManager.PLAYER_NOT_FOUND(args[0]));
+		return;
+	    }
 
-		pum.unban(sender, result);
-	    });
+	    pum.unban(sender, result);
 	} else {
 	    pum.unban(sender, args[0]);
 	}

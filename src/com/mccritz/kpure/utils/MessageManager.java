@@ -2,14 +2,11 @@ package com.mccritz.kpure.utils;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import com.mccritz.kpure.kPure;
 
 public class MessageManager {
 
@@ -18,8 +15,10 @@ public class MessageManager {
     }
 
     public static void sendMessage(UUID id, String message) {
-	if (Bukkit.getPlayer(id) != null) {
-	    Bukkit.getPlayer(id).sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+	Player p = Bukkit.getPlayer(id);
+
+	if (p != null) {
+	    p.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
 	}
     }
 
@@ -39,16 +38,6 @@ public class MessageManager {
 	for (UUID id : list) {
 	    sendMessage(id, message);
 	}
-    }
-
-    public static void sendStaffMessage(CommandSender sender, String message) {
-	for (Player all : PlayerUtility.getOnlinePlayers()) {
-	    if (all.hasPermission("pure.staffchat")) {
-		all.sendMessage(ChatColor.translateAlternateColorCodes('&', "&d" + sender.getName() + ": ") + message);
-	    }
-	}
-
-	kPure.getInstance().getLogger().log(Level.INFO, "[Staff Message]: " + sender.getName() + ": " + message);
     }
 
     public static String PLAYER_NOT_FOUND(String name) {

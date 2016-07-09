@@ -1,6 +1,5 @@
 package com.mccritz.kpure.listeners;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -10,7 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -19,11 +18,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.profile.Profile;
+import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.utils.MessageManager;
 
 public class PinListener implements Listener {
 
-    private HashMap<UUID, Profile> cached = new HashMap<>();
+    private ProfileManager pm = kPure.getInstance().getProfileManager();
     private HashSet<UUID> logged = new HashSet<>();
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -31,19 +31,22 @@ public class PinListener implements Listener {
 	Player p = e.getPlayer();
 
 	new BukkitRunnable() {
+
+	    @Override
 	    public void run() {
 		if (p.hasPermission("kpure.pin")) {
-		    Profile profile = kPure.getInstance().getProfileManager().getProfile(p.getUniqueId());
-		    cached.put(p.getUniqueId(), profile);
-
-		    if (!profile.hasPin()) {
+		    if (!pm.getProfile(p.getUniqueId()).hasPin()) {
 			new BukkitRunnable() {
 
+			    @Override
 			    public void run() {
+				Profile profile = pm.getProfile(p.getUniqueId());
+
 				if (!profile.hasPin()) {
 				    MessageManager.sendMessage(p, "&cPlease setup your four digit PIN. /setpin ####");
-				} else
+				} else {
 				    this.cancel();
+				}
 			    }
 
 			}.runTaskTimer(kPure.getInstance(), 0, 5 * 20);
@@ -52,29 +55,31 @@ public class PinListener implements Listener {
 
 			new BukkitRunnable() {
 
+			    @Override
 			    public void run() {
 				if (logged.contains(p.getUniqueId())) {
 				    MessageManager.sendMessage(p, "&7Please enter your PIN.");
-				} else
+				} else {
 				    this.cancel();
+				}
 			    }
 
-			}.runTaskTimer(kPure.getInstance(), 5, 5 * 20);
+			}.runTaskTimer(kPure.getInstance(), 0, 5 * 20);
 		    }
 		}
 	    }
-	}.runTaskLater(kPure.getInstance(), 5);
+
+	}.runTaskLater(kPure.getInstance(), 5L);
     }
-    
+
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    Profile profile = this.cached.get(p.getUniqueId());
-	    
-	    if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
-	    {
+	    Profile profile = pm.getProfile(p.getUniqueId());
+
+	    if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
 		e.setTo(e.getFrom());
 	    }
 	}
@@ -85,10 +90,9 @@ public class PinListener implements Listener {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    Profile profile = this.cached.get(p.getUniqueId());
-	    
-	    if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
-	    {
+	    Profile profile = pm.getProfile(p.getUniqueId());
+
+	    if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
 		e.setCancelled(true);
 	    }
 	}
@@ -101,10 +105,9 @@ public class PinListener implements Listener {
 	    Player p = (Player) e.getEntity();
 
 	    if (p.hasPermission("kpure.pin")) {
-		Profile profile = this.cached.get(p.getUniqueId());
-		
-		if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
-		{
+		Profile profile = pm.getProfile(p.getUniqueId());
+
+		if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
 		    e.setCancelled(true);
 		}
 	    }
@@ -113,50 +116,45 @@ public class PinListener implements Listener {
 
     @EventHandler
     public void onDamage2(EntityDamageByEntityEvent e) {
-	if (e.getEntity() instanceof Player) {
-	    Player p = (Player) e.getEntity();
+	if (e.getDamager() instanceof Player) {
+	    Player p = (Player) e.getDamager();
 
 	    if (p.hasPermission("kpure.pin")) {
-		Profile profile = this.cached.get(p.getUniqueId());
-		
-		if ((profile != null && !profile.hasPin()) || logged.contains(p.getUniqueId()))
-		{
+		Profile profile = pm.getProfile(p.getUniqueId());
+
+		if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
 		    e.setCancelled(true);
 		}
 	    }
 	}
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onChat(PlayerChatEvent e) {
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent e) {
 	Player p = e.getPlayer();
 
 	if (p.hasPermission("kpure.pin")) {
-	    Profile profile = this.cached.get(p.getUniqueId());
-	    
-	    if (profile != null) {
-		if (!profile.hasPin()) {
-		    e.setCancelled(true);
-		    MessageManager.sendMessage(p, "&7You cannot chat until you entered your PIN.");
+	    Profile profile = pm.getProfile(p.getUniqueId());
+
+	    if (!profile.hasPin()) {
+		e.setCancelled(true);
+		MessageManager.sendMessage(p, "&7You cannot chat until you entered your PIN.");
+	    }
+
+	    if (logged.contains(p.getUniqueId())) {
+		e.setCancelled(true);
+		if (!isFourDigitCode(e.getMessage())) {
+		    MessageManager.sendMessage(p, "&4That PIN is incorrect. Please try again.");
+		    return;
 		}
 
-		if (logged.contains(p.getUniqueId())) {
-		    e.setCancelled(true);
-
-		    if (!isFourDigitCode(e.getMessage())) {
-			MessageManager.sendMessage(p, "&4That PIN is incorrect. Please try again.");
-			return;
-		    }
-
-		    if (!e.getMessage().equalsIgnoreCase(profile.getPin())) {
-			MessageManager.sendMessage(p, "&4That PIN is incorrect. Please try again.");
-			return;
-		    }
-
-		    cached.remove(p.getUniqueId());
-		    logged.remove(p.getUniqueId());
-		    MessageManager.sendMessage(p, "&7You have been successfully authenticated.");
+		if (!e.getMessage().equalsIgnoreCase(profile.getPin())) {
+		    MessageManager.sendMessage(p, "&4That PIN is incorrect. Please try again.");
+		    return;
 		}
+
+		logged.remove(p.getUniqueId());
+		MessageManager.sendMessage(p, "&7You have been successfully authenticated.");
 	    }
 	}
     }
@@ -167,13 +165,11 @@ public class PinListener implements Listener {
 
 	if (p.hasPermission("kpure.pin")) {
 	    if (!e.getMessage().toLowerCase().contains("/setpin")) {
-		Profile profile = this.cached.get(p.getUniqueId());
-		
-		if (profile != null) {
-		    if (!profile.hasPin()) {
-			e.setCancelled(true);
-			MessageManager.sendMessage(p, "&7You cannot use commands until you have entered your PIN.");
-		    }
+		Profile profile = pm.getProfile(p.getUniqueId());
+
+		if (!profile.hasPin()) {
+		    e.setCancelled(true);
+		    MessageManager.sendMessage(p, "&7You cannot use commands until you have entered your PIN.");
 		}
 	    }
 

@@ -1,16 +1,13 @@
 package com.mccritz.kpure.utils.command;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import com.mccritz.kpure.utils.MessageManager;
 
-public abstract class BaseCommand implements TabExecutor {
+public abstract class BaseCommand implements CommandExecutor {
 
     String name;
     String permission;
@@ -65,16 +62,7 @@ public abstract class BaseCommand implements TabExecutor {
 	return true;
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String s, String[] strings) {
-	return tabComplete(strings, sender);
-    }
-
     public abstract void execute(CommandSender sender, String[] args);
-
-    public List<String> tabComplete(String[] args, CommandSender sender) {
-	return new ArrayList<>();
-    }
 
     public String getName() {
 	return name;

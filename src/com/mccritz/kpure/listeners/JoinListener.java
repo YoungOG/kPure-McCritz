@@ -32,24 +32,17 @@ public class JoinListener implements Listener {
 
 	p.setGameMode(GameMode.SURVIVAL);
 
-	pm.requestProfile(p.getUniqueId(), (result, throwable) -> {
-	    if (throwable != null) {
-		throwable.printStackTrace();
-	    } else {
-		if (result != null) {
-		    System.out.println("Loading " + p.getName() + "'s profile!");
-		    // pm.loadProfile(result, true);
+	Profile result = pm.getProfile(p.getUniqueId());
 
-		    // result.setOnline(p.isOnline());
-		    result.setLogins(result.getLogins() + 1);
-		    result.setGroup("disabled");
-		    result.saveProfileData();
-		} else {
-		    System.out.println("Creating " + p.getName() + "'s profile!");
-		    pm.createProfile(p, p.getAddress().getAddress().getHostAddress().replace("/", ""));
-		}
-	    }
-	});
+	if (result != null) {
+	    System.out.println("Loading " + p.getName() + "'s profile!");
+	    result.setLogins(result.getLogins() + 1);
+	    result.setGroup("disabled");
+	    pm.saveProfile(result);
+	} else {
+	    System.out.println("Creating " + p.getName() + "'s profile!");
+	    pm.createProfile(p, p.getAddress().getAddress().getHostAddress().replace("/", ""));
+	}
     }
 
     @EventHandler
@@ -63,49 +56,28 @@ public class JoinListener implements Listener {
 	}
 
 	if (p != null) {
-	    pm.requestProfile(p.getUniqueId(), (result, throwable) -> {
-		if (throwable != null || result == null) {
-		    if (throwable != null) {
-			throwable.printStackTrace();
-			return;
-		    }
+	    Profile result = pm.getProfile(p.getUniqueId());
 
-		    // System.out.println("Creating " + p.getName() + "'s
-		    // profile!");
-		    // pm.createProfile(p,
-		    // e.getAddress().getHostAddress().replace("/", ""));
-		} else if (result.isBanned()) {
+	    if (result != null) {
+		if (result.isBanned()) {
 		    e.disallow(PlayerLoginEvent.Result.KICK_BANNED, ChatColor.RED
 			    + "You have been banned from McCritZ.\nYou can purchase an unban at store.mccritz.com");
 		} else {
 		    result.setCurrentName(p.getName());
+		    result.getNameList().add(p.getName());
+
 		    result.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
-		    result.saveProfileData();
+		    result.getIpList().add(e.getAddress().getHostAddress().replace("/", ""));
+		    pm.saveProfile(result);
 		}
-	    });
+	    }
 	}
     }
-
-    // @EventHandler
-    // public void onQuit(PlayerQuitEvent e) {
-    // Player p = e.getPlayer();
-    //
-    // Profile prof = pm.getProfile(p.getUniqueId());
-    //
-    // if (prof != null) {
-    // prof.setOnline(false);
-    // prof.saveProfileData();
-    // }
-    //
-    // pm.getLoadedProfiles().remove(prof);
-    // }
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
 	Player p = e.getPlayer();
-
 	Profile prof = pm.getProfile(p.getUniqueId());
-	prof.saveProfileData();
 
 	if (prof.isMuted()) {
 	    e.setCancelled(true);
@@ -117,6 +89,7 @@ public class JoinListener implements Listener {
 	    if (prof.isTemporarilyMuted()) {
 		if (System.currentTimeMillis() >= prof.getActiveTemporaryMute().getLength()) {
 		    prof.getActiveTemporaryMute().setLength(0);
+		    pm.saveProfile(prof);
 		    return;
 		}
 

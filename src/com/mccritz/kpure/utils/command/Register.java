@@ -30,8 +30,6 @@ public class Register {
     private SimpleCommandMap commandMap;
 
     public Register() {
-	super();
-
 	try {
 	    this.commandMap = (SimpleCommandMap) Bukkit.getServer().getClass()
 		    .getDeclaredMethod("getCommandMap", new Class[0]).invoke(Bukkit.getServer());

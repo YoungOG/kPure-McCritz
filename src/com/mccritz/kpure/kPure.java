@@ -8,7 +8,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.google.gson.Gson;
 import com.mccritz.kpure.commands.CommandBan;
 import com.mccritz.kpure.commands.CommandBanIP;
 import com.mccritz.kpure.commands.CommandClearItems;
@@ -25,6 +24,7 @@ import com.mccritz.kpure.commands.CommandUnMute;
 import com.mccritz.kpure.commands.CommandUnban;
 import com.mccritz.kpure.listeners.JoinListener;
 import com.mccritz.kpure.listeners.PinListener;
+import com.mccritz.kpure.profile.Profile;
 import com.mccritz.kpure.profile.ProfileManager;
 import com.mccritz.kpure.punishment.PunishmentManager;
 import com.mccritz.kpure.utils.PlayerUtility;
@@ -45,7 +45,6 @@ public class kPure extends JavaPlugin {
     private ProfileManager profileManager;
     private PunishmentManager punishmentManager;
 
-    public static final Gson GSON = new Gson();
     public static final ExecutorService SERVICE = Executors.newCachedThreadPool();
 
     @Override
@@ -64,35 +63,19 @@ public class kPure extends JavaPlugin {
 	registerListeners();
 
 	for (Player p : PlayerUtility.getOnlinePlayers()) {
-	    profileManager.requestProfile(p.getUniqueId(), (result, throwable) -> {
-		if (throwable != null) {
-		    throwable.printStackTrace();
-		    return;
-		}
+	    Profile result = profileManager.getProfile(p.getUniqueId());
 
-		if (result == null)
-		    return;
-
-		System.out.println("Loading " + p.getName() + "'s profile!");
-		// profileManager.loadProfile(result, true);
-
-		// result.setOnline(p.isOnline());
-		result.setLogins(result.getLogins() + 1);
-		result.setGroup("disabled");
-		result.saveProfileData();
-	    });
+	    System.out.println("Loading " + p.getName() + "'s profile!");
+	    result.setLogins(result.getLogins() + 1);
+	    result.setGroup("disabled");
+	    profileManager.saveProfile(result);
 	}
     }
 
     @Override
     public void onDisable() {
-	// profileManager.saveProfiles();
-	// punishmentManager.saveIPBans();
-
 	mongoClient.close();
-
 	saveConfig();
-
 	SERVICE.shutdown();
     }
 
@@ -120,11 +103,8 @@ public class kPure extends JavaPlugin {
     }
 
     public void registerListeners() {
-	getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-
 	getServer().getPluginManager().registerEvents(new JoinListener(), this);
 	getServer().getPluginManager().registerEvents(new PinListener(), this);
-//	getServer().getPluginManager().registerEvents(new UUIDVerifierListener(), this);
     }
 
     public void setupMongoConnection() {

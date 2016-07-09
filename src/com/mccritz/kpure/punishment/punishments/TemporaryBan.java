@@ -14,16 +14,14 @@ public class TemporaryBan extends Punishment {
     protected long length;
 
     public TemporaryBan(UUID punisherUUID, long length, String reason, String dateIssued) {
-	super();
-
-	this.punisherUUID = punisherUUID;
+	super(punisherUUID, reason, dateIssued, System.currentTimeMillis() <= length);
 	this.length = length;
-	this.reason = reason;
-	this.dateIssued = dateIssued;
     }
 
     @Override
     public boolean isActive() {
-	return active = System.currentTimeMillis() <= length;
+	boolean active = System.currentTimeMillis() <= length;
+	super.setActive(active);
+	return active;
     }
 }

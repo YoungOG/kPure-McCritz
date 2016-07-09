@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -22,8 +19,6 @@ import com.mccritz.kpure.punishment.punishments.TemporaryBan;
 import com.mccritz.kpure.punishment.punishments.TemporaryMute;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -32,13 +27,11 @@ import lombok.Setter;
 @Setter
 public class Profile {
 
-    private MongoCollection<Document> pCollection = kPure.getInstance().getMongoDatabase().getCollection("profiles");
     private UUID uniqueID;
     private String currentName;
     private String currentIP;
     private String dateCreated;
     private String group;
-    // private boolean isOnline;
     private long playtime;
     private int logins;
     private String pin;
@@ -58,192 +51,72 @@ public class Profile {
 	this.uniqueID = uniqueID;
     }
 
-    public void loadProfileData(@Nullable ProfileRequest<Profile> callback, boolean username) {
-	try {
-	    Document document = pCollection
-		    .find(Filters.eq(username ? "currentName" : "uniqueID", username
-			    ? Pattern.compile("^" + currentName + "$", Pattern.CASE_INSENSITIVE) : uniqueID.toString()))
-		    .first();
-
-	    if (document == null) {
-		System.out.println("Failed to load " + (username ? currentName : uniqueID) + "'s profile.");
-
-		if (callback != null) {
-		    callback.onComplete(null, null);
-		}
-
-		return;
-	    }
-
-	    HashSet<UUID> altList = new HashSet<>();
-	    List<String> alts = (List<String>) document.get("altList");
-	    for (String s : alts) {
-		altList.add(UUID.fromString(s));
-	    }
-
-	    HashSet<String> nameList = new HashSet<>();
-	    List<String> names = (List<String>) document.get("nameList");
-	    for (String s : names) {
-		nameList.add(s);
-	    }
-
-	    HashSet<String> ipList = new HashSet<>();
-	    List<String> ips = (List<String>) document.get("ipList");
-	    for (String s : ips) {
-		ipList.add(s);
-	    }
-
-	    ArrayList<PermanentBan> permanentBans = new ArrayList<>();
-	    List<Document> docs1 = (List<Document>) document.get("permanent-bans");
-	    for (Document doc : docs1) {
-		permanentBans.add(new PermanentBan(
-			doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
-			doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
-	    }
-
-	    ArrayList<TemporaryBan> temporaryBans = new ArrayList<>();
-	    List<Document> docs2 = (List<Document>) document.get("temporary-bans");
-	    for (Document doc : docs2) {
-		temporaryBans.add(new TemporaryBan(
-			doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
-			doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
-	    }
-
-	    ArrayList<PermanentMute> permanentMutes = new ArrayList<>();
-	    List<Document> docs3 = (List<Document>) document.get("permanent-mutes");
-	    for (Document doc : docs3) {
-		permanentMutes.add(new PermanentMute(
-			doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
-			doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
-	    }
-
-	    ArrayList<TemporaryMute> temporaryMutes = new ArrayList<>();
-	    List<Document> docs4 = (List<Document>) document.get("temporary-mutes");
-	    for (Document doc : docs4) {
-		temporaryMutes.add(new TemporaryMute(
-			doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
-			doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
-	    }
-
-	    setUniqueID(UUID.fromString(document.getString("uniqueID")));
-	    setCurrentName(document.getString("currentName"));
-	    setCurrentIP(document.getString("currentIP"));
-	    setDateCreated(document.getString("dateCreated"));
-	    setGroup(document.getString("group"));
-	    // setOnline(document.getBoolean("isOnline"));
-	    setPlaytime(document.getLong("playtime"));
-	    setLogins(document.getInteger("logins"));
-	    setPin(document.getString("pin"));
-	    setAltList(altList);
-	    setNameList(nameList);
-	    setIpList(ipList);
-	    setPermanentBans(permanentBans);
-	    setTemporaryBans(temporaryBans);
-	    setPermanentMutes(permanentMutes);
-	    setTemporaryMutes(temporaryMutes);
-
-	    if (callback != null) {
-		callback.onComplete(this, null);
-	    }
-	} catch (Throwable t) {
-	    t.printStackTrace();
-	    System.out.println("Failed to load " + (username ? currentName : uniqueID) + "'s profile.");
-
-	    if (callback != null) {
-		callback.onComplete(null, t);
-	    }
+    public Profile(Document document) {
+	HashSet<UUID> altList = new HashSet<>();
+	List<String> alts = (List<String>) document.get("altList");
+	for (String s : alts) {
+	    altList.add(UUID.fromString(s));
 	}
-    }
 
-    public void saveProfileData() {
-	Document doc = new Document("uniqueID", uniqueID.toString());
-	doc.append("currentName", currentName);
-	doc.append("currentIP", currentIP);
-	doc.append("dateCreated", dateCreated);
-	doc.append("group", group);
-	// doc.append("isOnline", isOnline);
-	doc.append("playtime", playtime);
-	doc.append("logins", logins);
-	doc.append("pin", pin);
-	doc.append("altList", altList.stream().map(UUID::toString).collect(Collectors.toList()));
-	doc.append("nameList", nameList);
-	doc.append("ipList", ipList);
-
-	List<Document> docs1 = new ArrayList<>();
-	for (PermanentBan b : permanentBans) {
-	    Document bDoc = new Document();
-
-	    if (b.getPunisherUUID() != null) {
-		bDoc.append("punisherUUID", b.getPunisherUUID().toString());
-	    }
-
-	    bDoc.append("reason", b.getReason());
-	    bDoc.append("dateCreated", b.getDateIssued());
-	    bDoc.append("isActive", b.isActive());
-	    docs1.add(bDoc);
+	HashSet<String> nameList = new HashSet<>();
+	List<String> names = (List<String>) document.get("nameList");
+	for (String s : names) {
+	    nameList.add(s);
 	}
-	doc.append("permanent-bans", docs1);
 
-	List<Document> docs2 = new ArrayList<>();
-	for (TemporaryBan b : temporaryBans) {
-	    Document bDoc = new Document();
-	    if (System.currentTimeMillis() >= b.getLength()) {
-		b.setActive(false);
-	    }
-
-	    if (b.getPunisherUUID() != null) {
-		bDoc.append("punisherUUID", b.getPunisherUUID().toString());
-	    }
-
-	    bDoc.append("length", b.getLength());
-	    bDoc.append("reason", b.getReason());
-	    bDoc.append("dateCreated", b.getDateIssued());
-	    bDoc.append("isActive", b.isActive());
-	    docs2.add(bDoc);
+	HashSet<String> ipList = new HashSet<>();
+	List<String> ips = (List<String>) document.get("ipList");
+	for (String s : ips) {
+	    ipList.add(s);
 	}
-	doc.append("temporary-bans", docs2);
 
-	List<Document> docs3 = new ArrayList<>();
-	for (PermanentMute b : permanentMutes) {
-	    Document bDoc = new Document();
-
-	    if (b.getPunisherUUID() != null) {
-		bDoc.append("punisherUUID", b.getPunisherUUID().toString());
-	    }
-
-	    bDoc.append("reason", b.getReason());
-	    bDoc.append("dateCreated", b.getDateIssued());
-	    bDoc.append("isActive", b.isActive());
-	    docs3.add(bDoc);
+	ArrayList<PermanentBan> permanentBans = new ArrayList<>();
+	List<Document> docs1 = (List<Document>) document.get("permanent-bans");
+	for (Document doc : docs1) {
+	    permanentBans.add(new PermanentBan(
+		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
+		    doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
 	}
-	doc.append("permanent-mutes", docs3);
 
-	List<Document> docs4 = new ArrayList<>();
-	for (TemporaryMute b : temporaryMutes) {
-	    Document bDoc = new Document();
-	    if (System.currentTimeMillis() >= b.getLength()) {
-		b.setActive(false);
-	    }
-
-	    if (b.getPunisherUUID() != null) {
-		bDoc.append("punisherUUID", b.getPunisherUUID().toString());
-	    }
-
-	    bDoc.append("length", b.getLength());
-	    bDoc.append("reason", b.getReason());
-	    bDoc.append("dateCreated", b.getDateIssued());
-	    bDoc.append("isActive", b.isActive());
-	    docs4.add(bDoc);
+	ArrayList<TemporaryBan> temporaryBans = new ArrayList<>();
+	List<Document> docs2 = (List<Document>) document.get("temporary-bans");
+	for (Document doc : docs2) {
+	    temporaryBans.add(new TemporaryBan(
+		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
+		    doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
 	}
-	doc.append("temporary-mutes", docs4);
 
-	Document document = pCollection.find(Filters.eq("uniqueID", uniqueID.toString())).first();
-
-	if (document == null) {
-	    pCollection.insertOne(doc);
-	} else {
-	    pCollection.replaceOne(Filters.eq("uniqueID", uniqueID.toString()), doc);
+	ArrayList<PermanentMute> permanentMutes = new ArrayList<>();
+	List<Document> docs3 = (List<Document>) document.get("permanent-mutes");
+	for (Document doc : docs3) {
+	    permanentMutes.add(new PermanentMute(
+		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
+		    doc.getString("reason"), doc.getString("dateCreated"), doc.getBoolean("isActive")));
 	}
+
+	ArrayList<TemporaryMute> temporaryMutes = new ArrayList<>();
+	List<Document> docs4 = (List<Document>) document.get("temporary-mutes");
+	for (Document doc : docs4) {
+	    temporaryMutes.add(new TemporaryMute(
+		    doc.getString("punisherUUID") != null ? UUID.fromString(doc.getString("punisherUUID")) : null,
+		    doc.getLong("length"), doc.getString("reason"), doc.getString("dateCreated")));
+	}
+
+	setUniqueID(UUID.fromString(document.getString("uniqueID")));
+	setCurrentName(document.getString("currentName"));
+	setCurrentIP(document.getString("currentIP"));
+	setDateCreated(document.getString("dateCreated"));
+	setGroup(document.getString("group"));
+	setPlaytime(document.getLong("playtime"));
+	setLogins(document.getInteger("logins"));
+	setPin(document.getString("pin"));
+	setAltList(altList);
+	setNameList(nameList);
+	setIpList(ipList);
+	setPermanentBans(permanentBans);
+	setTemporaryBans(temporaryBans);
+	setPermanentMutes(permanentMutes);
+	setTemporaryMutes(temporaryMutes);
     }
 
     public List<Player> getOnlineAlts() {
