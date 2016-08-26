@@ -3,3 +3,4 @@ main: com.mccritz.kpure.kPure
 version: 1.0
 description: Global bans and punishments plugin that utilizes MongoDB.
 author: MCCritZ Development
+depends: [kPerms]

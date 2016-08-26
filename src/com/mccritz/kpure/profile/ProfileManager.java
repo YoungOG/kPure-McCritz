@@ -1,200 +1,185 @@
 package com.mccritz.kpure.profile;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import org.bson.Document;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-
+import com.mccritz.kperms.kPerms;
 import com.mccritz.kpure.kPure;
-import com.mccritz.kpure.punishment.punishments.IPBan;
-import com.mccritz.kpure.punishment.punishments.PermanentBan;
-import com.mccritz.kpure.punishment.punishments.PermanentMute;
-import com.mccritz.kpure.punishment.punishments.TemporaryBan;
-import com.mccritz.kpure.punishment.punishments.TemporaryMute;
+import com.mccritz.kpure.punishment.punishments.*;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
-
+import com.mongodb.client.model.IndexOptions;
 import mkremins.fanciful.FancyMessage;
+import org.bson.Document;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class ProfileManager {
 
     private kPure main = kPure.getInstance();
     private MongoCollection pCollection = main.getMongoDatabase().getCollection("profiles");
 
-    public void createProfile(Player p, String ip) {
-	Profile prof = new Profile(p.getUniqueId());
-
-	prof.setCurrentIP(ip);
-	prof.setCurrentName(p.getName());
-	prof.setDateCreated(DateUtil.getProperDate(new Date()));
-	prof.setGroup("disabled");
-	prof.setPlaytime(0);
-	prof.setLogins(1);
-	prof.setPin("");
-	prof.getIpList().add(prof.getCurrentIP());
-	prof.getNameList().add(prof.getCurrentName());
-	this.saveProfile(prof);
-
-	Bukkit.getLogger().log(Level.INFO, "Performing check for " + prof.getCurrentName() + ".");
-
-	// kPure.getInstance().getPunishmentManager().checkForValidAlts(prof.getUniqueID());
-	// kPure.getInstance().getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
+    public void ProfileManager() {
+        pCollection.createIndex(new Document("uniqueID", 1), new IndexOptions().unique(true));
+        pCollection.createIndex(new Document("name", 1), new IndexOptions().unique(true));
     }
 
-    public Profile createSimpleProfile(UUID id, String name) {
-	Profile profile = new Profile(id);
-	profile.setCurrentName(name);
-	profile.setCurrentIP("0.0.0.0");
-	profile.setDateCreated(DateUtil.getProperDate(new Date()));
-	profile.setGroup("none");
-	profile.setPlaytime(0);
-	profile.setLogins(0);
-	profile.setPin("");
-	profile.getNameList().add(name);
-	this.saveProfile(profile);
+    public void createProfile(Player p, String ip) {
+        Profile prof = new Profile(p.getUniqueId());
+        com.mccritz.kperms.profiles.Profile pProf = kPerms.getInstance().getProfileManager().getProfile(p.getUniqueId());
 
-	Bukkit.getLogger().log(Level.INFO, "Performing check for " + profile.getCurrentName() + ".");
+        prof.setCurrentIP(ip);
+        prof.setCurrentName(p.getName());
+        prof.setDateCreated(DateUtil.getProperDate(new Date()));
+        prof.setGroup(pProf != null ? pProf.getRank().getName() : "None");
+        prof.setLastUsedIP(ip);
+        prof.setPlaytime(0);
+        prof.setLogins(1);
+        prof.setPin("");
+        prof.getIpList().add(prof.getCurrentIP());
+        prof.getNameList().add(prof.getCurrentName());
+        saveProfile(prof);
 
-	kPure.getInstance().getPunishmentManager().checkForValidAlts(id);
-	kPure.getInstance().getPunishmentManager().checkForBannedAlts(id);
-	return profile;
+        main.getPunishmentManager().checkForValidAlts(prof.getUniqueID());
+        main.getPunishmentManager().checkForBannedAlts(prof.getUniqueID());
     }
 
     public void lookup(CommandSender sender, String address) {
-	FindIterable<Document> foundDocuments = pCollection.find(Filters.eq("currentIP", address));
-	List<Profile> foundProfiles = new ArrayList<>();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                FindIterable<Document> foundDocuments = pCollection.find(Filters.eq("currentIP", address));
+                List<Profile> foundProfiles = new ArrayList<>();
 
-	for (Document doc : foundDocuments) {
-	    foundProfiles.add(
-		    kPure.getInstance().getProfileManager().getProfile(UUID.fromString(doc.getString("uniqueID"))));
-	}
+                for (Document doc : foundDocuments) {
+                    foundProfiles.add(kPure.getInstance().getProfileManager().getProfile(UUID.fromString(doc.getString("uniqueID"))));
+                }
 
-	if (foundProfiles.size() <= 0) {
-	    MessageManager.sendMessage(sender,
-		    "&cCould not find any accounts associated with the IP \"" + address + "\"");
-	}
+                if (foundProfiles.size() <= 0) {
+                    MessageManager.sendMessage(sender, "&cCould not find any accounts associated with the IP \"" + address + "\"");
+                }
 
-	MessageManager.sendMessage(sender,
-		"&7Found (&a" + foundProfiles.size() + "&7) accounts associated with the IP (&a" + address + "&7):");
-	MessageManager.sendMessage(sender, "&cNote: Hover over for more information, click to preform lookup command.");
+                MessageManager.sendMessage(sender, "&7Found (&a" + foundProfiles.size() + "&7) accounts associated with the IP (&a" + address + "&7):");
+                MessageManager.sendMessage(sender, "&cNote: Hover over for more information, click to preform lookup command.");
 
-	for (Profile prof : foundProfiles) {
-	    FancyMessage fm = new FancyMessage(ChatColor.translateAlternateColorCodes('&',
-		    "&7- &b&l" + prof.getCurrentName() + " &7(&a" + prof.getCurrentIP() + "&7)"));
-	    fm.command("/lookup " + prof.getCurrentName());
-	    fm.tooltip(translatedColors(getProfileInformation(prof)));
-	    fm.send(sender);
-	}
+                for (Profile prof : foundProfiles) {
+                    FancyMessage fm = new FancyMessage(ChatColor.translateAlternateColorCodes('&', "&7- &b&l" + prof.getCurrentName() + " &7(&a" + prof.getCurrentIP() + "&7)"));
+                    fm.command("/lookup " + prof.getCurrentName());
+                    fm.tooltip(translatedColors(getProfileInformation(prof)));
+                    fm.send(sender);
+                }
+            }
+        }.runTaskAsynchronously(main);
     }
 
     public Profile getProfile(UUID id) {
-	try {
-	    return kPure.SERVICE.submit(new ProfileLoadCallable(id)).get();
-	} catch (InterruptedException | ExecutionException e) {
-	    e.printStackTrace();
-	}
+        try {
+            return kPure.SERVICE.submit(new ProfileLoadCallable(id)).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
 
-	return null;
+        return null;
     }
 
     public Profile getProfile(String name) {
-	try {
-	    return kPure.SERVICE.submit(new ProfileLoadCallable(name)).get();
-	} catch (InterruptedException | ExecutionException e) {
-	    e.printStackTrace();
-	}
+        try {
+            return kPure.SERVICE.submit(new ProfileLoadCallable(name)).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
 
-	return null;
+        return null;
     }
 
     public void saveProfile(Profile profile) {
-	kPure.SERVICE.submit(new ProfileSaveCallable(profile));
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                kPure.SERVICE.submit(new ProfileSaveCallable(profile));
+            }
+        }.runTaskAsynchronously(main);
     }
 
     public List<String> getProfileInformation(Profile prof) {
-	List<String> lines = new ArrayList<>();
+        List<String> lines = new ArrayList<>();
 
-	lines.add("&b&l" + prof.getCurrentName() + " &7(&a" + prof.getCurrentIP() + "&7)");
-	lines.add("&7Online: " + (Bukkit.getPlayer(prof.getUniqueID()) != null ? "&aTrue" : "&cFalse"));
-	lines.add("&7Playtime: &a" + DateUtil.readableTime(prof.getPlaytime() * 1000));
-	lines.add("&7Rank: &a" + prof.getGroup());
-	lines.add("&7Past IPs(&a" + prof.getIpList().size() + "&7): &a"
-		+ prof.getIpList().toString().replace("[", "").replace("]", ""));
-	lines.add("&7Past Names&7(&a" + prof.getNameList().size() + "&7): &a"
-		+ prof.getNameList().toString().replace("[", "").replace("]", ""));
+        lines.add("&b&l" + prof.getCurrentName() + " &7(&a" + prof.getCurrentIP() + "&7)");
+        lines.add("&7Online: " + (Bukkit.getPlayer(prof.getUniqueID()) != null ? "&aTrue" : "&cFalse"));
+        lines.add("&7Playtime: &a" + DateUtil.readableTime(prof.getPlaytime() * 1000));
+        lines.add("&7Rank: &a" + prof.getGroup());
+        lines.add("&7Last Used IP: &c" + prof.getLastUsedIP());
+        lines.add("&7Past IPs(&a" + prof.getIpList().size() + "&7): &a" + prof.getIpList().toString().replace("[", "").replace("]", ""));
+        lines.add("&7Past Names&7(&a" + prof.getNameList().size() + "&7): &a" + prof.getNameList().toString().replace("[", "").replace("]", ""));
 
-	if (prof.getAltList().size() > 0) {
-	    lines.add("&7Known Alts&7(&a" + prof.getAltList().size() + "&7): &a"
-		    + prof.getKnownAltsNames().toString().replace("[", "").replace("]", ""));
+        if (prof.getAltList().size() > 0) {
+            lines.add("&7Known Alts&7(&a" + prof.getAltList().size() + "&7): &a" + prof.getKnownAltsNames().toString().replace("[", "").replace("]", ""));
 
-	    if (prof.getOnlineAlts().size() > 0) {
-		lines.add("&7Online Alts&7(&a" + prof.getOnlineAlts().size() + "&7): &a"
-			+ prof.getOnlineAltsNames().toString().replace("[", "").replace("]", ""));
-	    }
-	}
+            if (prof.getOnlineAlts().size() > 0) {
+                lines.add("&7Online Alts&7(&a" + prof.getOnlineAlts().size() + "&7): &a" + prof.getOnlineAltsNames().toString().replace("[", "").replace("]", ""));
+            }
+        }
 
-	lines.add("&7Banned: &a" + prof.isBanned());
-	if (prof.isBanned()) {
-	    if (kPure.getInstance().getPunishmentManager().isIPBanned(prof.getCurrentIP())) {
-		IPBan b = kPure.getInstance().getPunishmentManager().getActiveIPBan(prof.getCurrentIP());
-		lines.add("  &7Type: &aBlacklist");
-		lines.add("  &7Reason: &a" + b.getReason());
-		lines.add("  &7Date: &a" + b.getDateIssued());
-		lines.add("  &7By: &a" + b.getPunisherName());
-	    }
-	    if (prof.isPermanentlyBanned()) {
-		PermanentBan b = prof.getActivePermanentBan();
-		lines.add("  &7Type: &aPermanent");
-		lines.add("  &7Reason: &a" + b.getReason());
-		lines.add("  &7Date: &a" + b.getDateIssued());
-		lines.add("  &7By: &a" + b.getPunisherName());
-	    }
+        lines.add("&7Banned: &a" + prof.isBanned());
+        if (prof.isBanned()) {
+            if (kPure.getInstance().getPunishmentManager().isIPBanned(prof.getCurrentIP())) {
+                IPBan b = kPure.getInstance().getPunishmentManager().getActiveIPBan(prof.getCurrentIP());
+                lines.add("  &7Type: &aBlacklist");
+                lines.add("  &7Reason: &a" + b.getReason());
+                lines.add("  &7Date: &a" + b.getDateIssued());
+                lines.add("  &7By: &a" + b.getPunisherName());
+            }
+            if (prof.isPermanentlyBanned()) {
+                PermanentBan b = prof.getActivePermanentBan();
+                lines.add("  &7Type: &aPermanent");
+                lines.add("  &7Reason: &a" + b.getReason());
+                lines.add("  &7Date: &a" + b.getDateIssued());
+                lines.add("  &7By: &a" + b.getPunisherName());
+            }
 
-	    if (prof.isTemporarilyBanned()) {
-		TemporaryBan tb = prof.getActiveTemporaryBan();
-		lines.add("  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
-		lines.add("  &7Reason: &a" + tb.getReason());
-		lines.add("  &7Date: &a" + tb.getDateIssued());
-		lines.add("  &7By: &a" + tb.getPunisherName());
-	    }
-	}
+            if (prof.isTemporarilyBanned()) {
+                TemporaryBan tb = prof.getActiveTemporaryBan();
+                lines.add("  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
+                lines.add("  &7Reason: &a" + tb.getReason());
+                lines.add("  &7Date: &a" + tb.getDateIssued());
+                lines.add("  &7By: &a" + tb.getPunisherName());
+            }
+        }
 
-	lines.add("&7Muted: &a" + prof.isMuted());
-	if (prof.isMuted()) {
-	    if (prof.isPermanentlyMuted()) {
-		PermanentMute b = prof.getActivePermanentMute();
-		lines.add("  &7Type: &aPermanent");
-		lines.add("  &7Reason: &a" + b.getReason());
-		lines.add("  &7Date: &a" + b.getDateIssued());
-		lines.add("  &7By: &a" + b.getPunisherName());
-	    }
+        lines.add("&7Muted: &a" + prof.isMuted());
+        if (prof.isMuted()) {
+            if (prof.isPermanentlyMuted()) {
+                PermanentMute b = prof.getActivePermanentMute();
+                lines.add("  &7Type: &aPermanent");
+                lines.add("  &7Reason: &a" + b.getReason());
+                lines.add("  &7Date: &a" + b.getDateIssued());
+                lines.add("  &7By: &a" + b.getPunisherName());
+            }
 
-	    if (prof.isTemporarilyMuted()) {
-		TemporaryMute tb = prof.getActiveTemporaryMute();
-		lines.add("  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
-		lines.add("  &7Reason: &a" + tb.getReason());
-		lines.add("  &7Date: &a" + tb.getDateIssued());
-		lines.add("  &7By: &a" + tb.getPunisherName());
-	    }
-	}
+            if (prof.isTemporarilyMuted()) {
+                TemporaryMute tb = prof.getActiveTemporaryMute();
+                lines.add("  &7Type: &aTemporary: " + DateUtil.formatDateDiff(tb.getLength()));
+                lines.add("  &7Reason: &a" + tb.getReason());
+                lines.add("  &7Date: &a" + tb.getDateIssued());
+                lines.add("  &7By: &a" + tb.getPunisherName());
+            }
+        }
 
-	return lines;
+        return lines;
     }
 
     public List<String> translatedColors(List<String> list) {
-	return list.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s))
-		.collect(Collectors.toCollection(ArrayList::new));
+        return list.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 }

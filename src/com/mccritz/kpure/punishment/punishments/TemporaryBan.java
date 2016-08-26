@@ -1,11 +1,10 @@
 package com.mccritz.kpure.punishment.punishments;
 
-import java.util.UUID;
-
 import com.mccritz.kpure.punishment.Punishment;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,14 +13,14 @@ public class TemporaryBan extends Punishment {
     protected long length;
 
     public TemporaryBan(UUID punisherUUID, long length, String reason, String dateIssued) {
-	super(punisherUUID, reason, dateIssued, System.currentTimeMillis() <= length);
-	this.length = length;
+        super(punisherUUID, reason, dateIssued, System.currentTimeMillis() <= length);
+        this.length = length;
     }
 
     @Override
     public boolean isActive() {
-	boolean active = System.currentTimeMillis() <= length;
-	super.setActive(active);
-	return active;
+        boolean active = System.currentTimeMillis() <= length;
+        super.setActive(active);
+        return active;
     }
 }

@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 public class PlayerUtility {
 
     public static Player[] getOnlinePlayers() {
-	return Bukkit.getOnlinePlayers();
+        return Bukkit.getOnlinePlayers();
     }
 
 }

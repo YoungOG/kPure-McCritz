@@ -1,27 +1,6 @@
 package com.mccritz.kpure;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import com.mccritz.kpure.commands.CommandBan;
-import com.mccritz.kpure.commands.CommandBanIP;
-import com.mccritz.kpure.commands.CommandClearItems;
-import com.mccritz.kpure.commands.CommandGMClear;
-import com.mccritz.kpure.commands.CommandKick;
-import com.mccritz.kpure.commands.CommandKickAll;
-import com.mccritz.kpure.commands.CommandLookup;
-import com.mccritz.kpure.commands.CommandMute;
-import com.mccritz.kpure.commands.CommandPermMute;
-import com.mccritz.kpure.commands.CommandResetPin;
-import com.mccritz.kpure.commands.CommandSetPin;
-import com.mccritz.kpure.commands.CommandTempBan;
-import com.mccritz.kpure.commands.CommandUnMute;
-import com.mccritz.kpure.commands.CommandUnban;
+import com.mccritz.kpure.commands.*;
 import com.mccritz.kpure.listeners.JoinListener;
 import com.mccritz.kpure.listeners.PinListener;
 import com.mccritz.kpure.profile.Profile;
@@ -32,8 +11,14 @@ import com.mccritz.kpure.utils.command.Register;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoDatabase;
-
 import lombok.Getter;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
 
 @Getter
 public class kPure extends JavaPlugin {
@@ -49,76 +34,77 @@ public class kPure extends JavaPlugin {
 
     @Override
     public void onEnable() {
-	instance = this;
+        instance = this;
 
-	getConfig().options().copyDefaults(true);
-	saveConfig();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
 
-	setupMongoConnection();
+        setupMongoConnection();
 
-	profileManager = new ProfileManager();
-	punishmentManager = new PunishmentManager();
+        profileManager = new ProfileManager();
+        punishmentManager = new PunishmentManager();
 
-	registerCommands();
-	registerListeners();
+        registerCommands();
+        registerListeners();
 
-	for (Player p : PlayerUtility.getOnlinePlayers()) {
-	    Profile result = profileManager.getProfile(p.getUniqueId());
+        for (Player p : PlayerUtility.getOnlinePlayers()) {
+            Profile result = profileManager.getProfile(p.getUniqueId());
 
-	    System.out.println("Loading " + p.getName() + "'s profile!");
-	    result.setLogins(result.getLogins() + 1);
-	    result.setGroup("disabled");
-	    profileManager.saveProfile(result);
-	}
+            System.out.println("Loading " + p.getName() + "'s profile!");
+            result.setLogins(result.getLogins() + 1);
+            result.setGroup("disabled");
+            profileManager.saveProfile(result);
+        }
     }
 
     @Override
     public void onDisable() {
-	mongoClient.close();
-	saveConfig();
-	SERVICE.shutdown();
+        mongoClient.close();
+        saveConfig();
+        SERVICE.shutdown();
     }
 
     public void registerCommands() {
-	Register register = new Register();
+        Register register = new Register();
 
-	try {
-	    register.registerCommand("lookup", new CommandLookup());
-	    register.registerCommand("kick", new CommandKick());
-	    register.registerCommand("ban", new CommandBan());
-	    register.registerCommand("tempban", new CommandTempBan());
-	    register.registerCommand("banip", new CommandBanIP());
-	    register.registerCommand("unban", new CommandUnban());
-	    register.registerCommand("mute", new CommandMute());
-	    register.registerCommand("permmute", new CommandPermMute());
-	    register.registerCommand("unmute", new CommandUnMute());
-	    register.registerCommand("setpin", new CommandSetPin());
-	    register.registerCommand("deletepin", new CommandResetPin());
-	    register.registerCommand("kickall", new CommandKickAll());
-	    register.registerCommand("clearitems", new CommandClearItems());
-	    register.registerCommand("gamemodeclear", new CommandGMClear());
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
+        try {
+            register.registerCommand("lookup", new CommandLookup());
+            register.registerCommand("kick", new CommandKick());
+            register.registerCommand("ban", new CommandBan());
+            register.registerCommand("tempban", new CommandTempBan());
+            register.registerCommand("banip", new CommandBanIP());
+            register.registerCommand("unban", new CommandUnban());
+            register.registerCommand("mute", new CommandMute());
+            register.registerCommand("permmute", new CommandPermMute());
+            register.registerCommand("unmute", new CommandUnMute());
+            register.registerCommand("setpin", new CommandSetPin());
+            register.registerCommand("deletepin", new CommandResetPin());
+            register.registerCommand("kickall", new CommandKickAll());
+            register.registerCommand("clearitems", new CommandClearItems());
+            register.registerCommand("gamemodeclear", new CommandGMClear());
+            register.registerCommand("register", new CommandRegister());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void registerListeners() {
-	getServer().getPluginManager().registerEvents(new JoinListener(), this);
-	getServer().getPluginManager().registerEvents(new PinListener(), this);
+        getServer().getPluginManager().registerEvents(new JoinListener(), this);
+        getServer().getPluginManager().registerEvents(new PinListener(), this);
     }
 
     public void setupMongoConnection() {
-	try {
-	    mongoClient = new MongoClient(getConfig().getString("database.host"));
+        try {
+            mongoClient = new MongoClient(getConfig().getString("database.host"));
 
-	    getLogger().log(Level.INFO, "Successfully connected to the MongoDB server.");
+            getLogger().log(Level.INFO, "Successfully connected to the MongoDB server.");
 
-	    mongoDatabase = mongoClient.getDatabase(getConfig().getString("database.database-name"));
-	} catch (MongoException e) {
-	    e.printStackTrace();
-	    getLogger().log(Level.WARNING, "Failed to connect to the MongoDB server, disabling!");
-	    Bukkit.getPluginManager().disablePlugin(this);
-	}
+            mongoDatabase = mongoClient.getDatabase(getConfig().getString("database.database-name"));
+        } catch (MongoException e) {
+            e.printStackTrace();
+            getLogger().log(Level.WARNING, "Failed to connect to the MongoDB server, disabling!");
+            Bukkit.getPluginManager().disablePlugin(this);
+        }
     }
 
 }

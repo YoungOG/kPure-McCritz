@@ -1,4 +1,6 @@
 database:
   database-name: kpure
-  host: '167.114.117.207'
+  host: 'localhost'
   port: 27017
+general:
+  force-bans: true
