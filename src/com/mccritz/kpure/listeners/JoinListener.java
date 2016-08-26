@@ -65,13 +65,10 @@ public class JoinListener implements Listener {
                         result.setCurrentName(p.getName());
                     } else {
                         result.setCurrentName(p.getName());
-                        result.getNameList().add(p.getName());
-
                         result.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
+                        result.setLastUsedIP(e.getAddress().getHostAddress().replace("/", ""));
 
-                        if (result.getLastUsedIP() == null)
-                            result.setLastUsedIP(e.getAddress().getHostAddress().replace("/", ""));
-
+                        result.getNameList().add(p.getName());
                         result.getIpList().add(e.getAddress().getHostAddress().replace("/", ""));
 
                         kPure.getInstance().getPunishmentManager().checkForValidAlts(result.getUniqueID());
@@ -87,13 +84,10 @@ public class JoinListener implements Listener {
 
                 if (result != null) {
                     result.setCurrentName(p.getName());
-                    result.getNameList().add(p.getName());
-
                     result.setCurrentIP(e.getAddress().getHostAddress().replace("/", ""));
+                    result.setLastUsedIP(e.getAddress().getHostAddress().replace("/", ""));
 
-                    if (result.getLastUsedIP() == null)
-                        result.setLastUsedIP(e.getAddress().getHostAddress().replace("/", ""));
-
+                    result.getNameList().add(p.getName());
                     result.getIpList().add(e.getAddress().getHostAddress().replace("/", ""));
 
                     kPure.getInstance().getPunishmentManager().checkForValidAlts(result.getUniqueID());

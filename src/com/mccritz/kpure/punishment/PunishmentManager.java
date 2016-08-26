@@ -9,7 +9,6 @@ import com.mccritz.kpure.utils.MessageManager;
 import com.mccritz.kpure.utils.PlayerUtility;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -32,8 +31,6 @@ public class PunishmentManager {
     private boolean forceBans;
 
     public PunishmentManager() {
-        bCollection.createIndex(new Document("address", 1), new IndexOptions().unique(true));
-
         forceBans = main.getConfig().getBoolean("general.force-bans");
     }
 
@@ -259,7 +256,7 @@ public class PunishmentManager {
                 for (Document doc : documents) {
                     Profile result = pm.getProfile(UUID.fromString(doc.getString("uniqueID")));
 
-                    if (result != null) {
+                    if (result != null && profile != null && profile.getCurrentIP() != null) {
                         if (result.getIpList().contains(profile.getCurrentIP())) {
                             if (!profile.getAltList().contains(result.getUniqueID())) {
                                 if (result.getUniqueID() != profile.getUniqueID()) {
@@ -296,7 +293,7 @@ public class PunishmentManager {
 
                     boolean alert = false;
 
-                    if (result != null) {
+                    if (result != null && profile != null) {
                         if (result.isBanned()) {
                             for (String taddress : result.getIpList()) {
                                 if (profile.getIpList().contains(taddress) && !profile.getUniqueID().equals(result.getUniqueID())) {

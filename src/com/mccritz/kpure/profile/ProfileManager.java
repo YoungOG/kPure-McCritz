@@ -5,10 +5,10 @@ import com.mccritz.kpure.kPure;
 import com.mccritz.kpure.punishment.punishments.*;
 import com.mccritz.kpure.utils.DateUtil;
 import com.mccritz.kpure.utils.MessageManager;
+import com.mccritz.kpure.utils.PlayerUtility;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.IndexOptions;
 import mkremins.fanciful.FancyMessage;
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -29,9 +29,17 @@ public class ProfileManager {
     private kPure main = kPure.getInstance();
     private MongoCollection pCollection = main.getMongoDatabase().getCollection("profiles");
 
-    public void ProfileManager() {
-        pCollection.createIndex(new Document("uniqueID", 1), new IndexOptions().unique(true));
-        pCollection.createIndex(new Document("name", 1), new IndexOptions().unique(true));
+    public ProfileManager() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player all : PlayerUtility.getOnlinePlayers()) {
+                    if (getProfile(all.getUniqueId()) != null) {
+                        getProfile(all.getUniqueId()).setPlaytime(getProfile(all.getUniqueId()).getPlaytime() + 1);
+                    }
+                }
+            }
+        }.runTaskTimerAsynchronously(main, 0L, 20);
     }
 
     public void createProfile(Player p, String ip) {
@@ -103,12 +111,7 @@ public class ProfileManager {
     }
 
     public void saveProfile(Profile profile) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                kPure.SERVICE.submit(new ProfileSaveCallable(profile));
-            }
-        }.runTaskAsynchronously(main);
+        kPure.SERVICE.submit(new ProfileSaveCallable(profile));
     }
 
     public List<String> getProfileInformation(Profile prof) {

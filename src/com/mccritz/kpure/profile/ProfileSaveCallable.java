@@ -8,6 +8,7 @@ import com.mccritz.kpure.punishment.punishments.TemporaryMute;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.ArrayList;
@@ -110,13 +111,19 @@ public class ProfileSaveCallable implements Callable<Void> {
         }
         doc.append("temporary-mutes", docs4);
 
-        Document document = pCollection.find(Filters.eq("uniqueID", profile.getUniqueID().toString())).first();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Document document = pCollection.find(Filters.eq("uniqueID", profile.getUniqueID().toString())).first();
 
-        if (document == null) {
-            pCollection.insertOne(doc);
-        } else {
-            pCollection.replaceOne(Filters.eq("uniqueID", profile.getUniqueID().toString()), doc);
-        }
+                if (document == null) {
+                    pCollection.insertOne(doc);
+                } else {
+                    pCollection.replaceOne(Filters.eq("uniqueID", profile.getUniqueID().toString()), doc);
+                }
+            }
+        }.runTaskAsynchronously(kPure.getInstance());
+
         return null;
     }
 

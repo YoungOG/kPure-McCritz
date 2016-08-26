@@ -68,15 +68,20 @@ public class PinListener implements Listener {
         }.runTaskLater(kPure.getInstance(), 5L);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
 
-        if (p.hasPermission("kpure.pin")) {
-            Profile profile = pm.getProfile(p.getUniqueId());
+        if (e.isCancelled() || e.getPlayer().isInsideVehicle())
+            return;
 
-            if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
-                e.setTo(e.getFrom());
+        if (e.getFrom().getBlockX() != e.getTo().getBlockX() || e.getFrom().getBlockY() != e.getTo().getBlockY() || e.getFrom().getBlockZ() != e.getTo().getBlockZ()) {
+            if (p.hasPermission("kpure.pin")) {
+                Profile profile = pm.getProfile(p.getUniqueId());
+
+                if (!profile.hasPin() || logged.contains(p.getUniqueId())) {
+                    e.setTo(e.getFrom());
+                }
             }
         }
     }
